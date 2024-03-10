@@ -1,0 +1,12 @@
+[package]
+name = "wallpaper-dl"
+version = "0.1.0"
+edition = "2021"
+license = "EUPL-1.2"
+description = "Web scraper for downloading wallpapers from various sites"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+scraper = "0.19"
+apputils = "0.1"
