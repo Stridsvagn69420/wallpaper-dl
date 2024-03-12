@@ -13,10 +13,10 @@ categories = ["command-line-utilities", "web-programming::http-client"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-scraper = "0.19"
 apputils = "0.1"
+scraper = "0.19"
 tokio = { version = "1", features = ["full"] }
-reqwest = { version = "0.11", features = ["tokio-rustls", "rustls-tls-native-roots", "deflate", "gzip", "brotli"], default-features = false }
+reqwest = { version = "0.11", features = ["blocking", "tokio-rustls", "rustls-tls-native-roots", "deflate", "gzip", "brotli"], default-features = false }
 toml = "0.8"
 serde = "1"
 
