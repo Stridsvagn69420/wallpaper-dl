@@ -1,5 +1,5 @@
 use std::error::Error;
-use apputils::console::Colors;
+use apputils::Colors;
 use apputils::{paint, paintln};
 use reqwest::Url;
 use reqwest;

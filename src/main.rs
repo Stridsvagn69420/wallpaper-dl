@@ -1,6 +1,6 @@
 use std::error::Error;
 use std::env;
-use apputils::console::Colors;
+use apputils::Colors;
 use apputils::paintln;
 
 mod test;
