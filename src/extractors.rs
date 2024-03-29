@@ -7,8 +7,8 @@ use scraper::{Html, Selector};
 use scraper::error::SelectorErrorKind;
 
 pub struct SelectAttr {
-	select: Selector,
-	attr: String
+	pub select: Selector,
+	pub attr: String
 }
 
 impl SelectAttr {
@@ -31,14 +31,4 @@ impl SelectAttr {
 pub fn src_tag_attr<'a>(html: &'a Html, elem: &SelectAttr) -> Option<&'a str> {
 	html.select(&elem.select).next()
 	.and_then(|x| x.attr(&elem.attr))
-}
-
-/// Source-Tag-Inner Extractor
-/// 
-/// The simplest of them all 2.0.
-/// It's essentially [src_tag_attr], but it returns the inner HTML
-/// and not the value of an attribute.
-pub fn src_tag_inner(html: &Html, elem: &Selector) -> Option<String>{
-	let tag = html.select(elem).next()?;
-	Some(tag.inner_html())
 }

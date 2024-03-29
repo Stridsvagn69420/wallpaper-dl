@@ -1,8 +1,11 @@
 # wallpaper-dl
-![Stars](https://img.shields.io/github/stars/Stridsvagn69420/wallpaper-dl.svg)
-![Downloads](https://img.shields.io/crates/d/wallpaper-dl.svg)
-![Version](https://img.shields.io/crates/v/wallpaper-dl.svg)
-![License](https://img.shields.io/crates/l/wallpaper-dl.svg)
+[![Stars](https://img.shields.io/github/stars/Stridsvagn69420/wallpaper-dl.svg)][github]
+[![Downloads](https://img.shields.io/crates/d/wallpaper-dl.svg)][crate]
+[![Version](https://img.shields.io/crates/v/wallpaper-dl.svg)][crate]
+[![License](https://img.shields.io/crates/l/wallpaper-dl.svg)][crate]
+
+[crate]: https://crates.io/crates/wallpaper-dl
+[github]: https://github.com/Stridsvagn69420/wallpaper-dl
 
 Web scraper for downloading wallpapers from various sites
 

@@ -1408,12 +1408,12 @@ name = "wallpaper-dl"
 version = "0.1.0"
 dependencies = [
  "apputils",
- "mime",
  "reqwest",
  "scraper",
  "serde",
  "tokio",
  "toml",
+ "url",
 ]
 
 [[package]]

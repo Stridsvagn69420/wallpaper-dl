@@ -2,11 +2,13 @@ use std::env;
 use std::process::ExitCode;
 use apputils::Colors;
 use apputils::paintln;
-use reqwest::{Client, Url};
+use reqwest::Client;
+use url::Url;
 
 mod extractors;
-mod alphacoders;
-use alphacoders::WallpaperAbyss;
+mod webscraper;
+use webscraper::{Webscraper, WallAbyss};
+
 
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION"));
 
@@ -39,19 +41,23 @@ async fn main() -> ExitCode {
 			return ExitCode::FAILURE;
 		};
 
-		let Some(abyss) = WallpaperAbyss::new(&html, &url) else {
+		let Ok(abyss) = WallAbyss::new(&html, &url) else {
 			paintln!(Colors::Red, "WallpaperAbyss failed to initialize!");
 			return ExitCode::FAILURE;
 		};
 
 		print!("Title: ");
-		paintln!(Colors::Cyan, "{}", abyss.image_title().unwrap());
+		paintln!(Colors::Cyan, "{}", abyss.image_title().unwrap_or_default());
 
 		print!("ID: ");
 		paintln!(Colors::Cyan, "{}", abyss.image_id());
 
+		let Ok(url) = abyss.image_url() else {
+			paintln!(Colors::Red, "");
+			return ExitCode::FAILURE;
+		};
 		print!("URL: ");
-		paintln!(Colors::Cyan, "{}", abyss.image_url().unwrap());
+		paintln!(Colors::Cyan, "{}", url);
 	}
 
 	ExitCode::SUCCESS
