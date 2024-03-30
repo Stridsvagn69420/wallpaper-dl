@@ -13,7 +13,7 @@ Web scraper for downloading wallpapers from various sites
 Currently it's very work-in-progress, but I plan on supporting these websites:
 - [Wallhaven](https://wallhaven.cc/)
 - Alphacoders ([Wallpaper Abyss](https://wall.alphacoders.com/), [Art Abyss](https://art.alphacoders.com/), [Image Abyss](https://pics.alphacoders.com/))
-- [ArtStation](https://www.artstation.com/)
+- [ArtStation](https://www.artstation.com/) (single-image posts only)
 
 ### Potential canidates
 - [DeviantArt](https://www.deviantart.com/) (see note below)

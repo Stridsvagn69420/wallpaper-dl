@@ -6,9 +6,9 @@ use reqwest::Client;
 use url::Url;
 
 mod extractors;
-mod webscraper;
-use webscraper::{Webscraper, WallAbyss};
 
+mod downloaders;
+use downloaders::{Webscraper, WallAbyss};
 
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION"));
 

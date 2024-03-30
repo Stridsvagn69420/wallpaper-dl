@@ -4,20 +4,20 @@ use reqwest::Error;
 use scraper::{Html, error::SelectorErrorKind};
 
 mod alphacoders;
-pub use alphacoders::WallAbyss;
+pub use alphacoders::{WallAbyss, ArtAbyss, ImageAbyss};
 
 mod artstation;
+pub use artstation::ArtStation;
 
 /// Webscraper Downloader Trait
 /// 
-/// Trait used for downloaders that rely on [Web scraping](https://en.wikipedia.org/wiki/Web_scraping).
-/// Often the service in question does not have a (suitable) API or its API paywalled.
+/// Trait for Wallpaper downloaders that rely on webscraping.
 pub trait Webscraper {
-	/// New Webscraper
+	/// New Wallpaper Downloader
 	/// 
 	/// Creates a new Webscraper.
 	/// Requires the HTML source code as well as the requested URL.
-	fn new(html: &str, url: &Url) -> ScraperResult<Self> where Self: Sized;
+	fn new(html: &str, url: &Url) -> DownloaderResult<Self> where Self: Sized;
 
 	/// Pointer to parsed HTML
 	fn source_html(&self) -> &Html;
@@ -36,33 +36,33 @@ pub trait Webscraper {
 	/// Image URL
 	/// 
 	/// The source image URL that points to the actual high quality image.
-	fn image_url(&self) -> ScraperResult<Url> {
+	fn image_url(&self) -> DownloaderResult<Url> {
 		let Some(url) = src_tag_attr(self.source_html(), self.selector_download()) else {
-			return Err(ScraperError::ParseError("HTML element or attribute not found.".to_string()));
+			return Err(DownloaderError::ParseError("HTML element or attribute not found.".to_string()));
 		};
 		Ok(Url::parse(url)?)
 	}
 
 	/// Image Title
-	fn image_title(&self) -> ScraperResult<String> {
+	fn image_title(&self) -> DownloaderResult<String> {
 		let Some(title) = src_tag_attr(self.source_html(), self.selector_title()) else {
-			return Err(ScraperError::ParseError("HTML element or attribute not found.".to_string()));
+			return Err(DownloaderError::ParseError("HTML element or attribute not found.".to_string()));
 		};
 		Ok(title.to_string())
 	}
 }
 
-/// Scraper Result alias
+/// Downloader Result alias
 /// 
 /// Just an alias like [io::Result](std::io::Result).  
 /// `T`: Any type provided  
-/// `E`: [ScraperError]
-pub type ScraperResult<T> = Result<T, ScraperError>;
+/// `E`: [DownloaderError]
+pub type DownloaderResult<T> = Result<T, DownloaderError>;
 
-/// Webscraper Errors
+/// Downloader Errors
 /// 
-/// Simplified errors for [Webscraper] structs.
-pub enum ScraperError {
+/// Simplified errors for [Webscraper] and [Restapi] structs.
+pub enum DownloaderError {
 	/// Connection Failed
 	/// 
 	/// The request could not be sent.
@@ -76,7 +76,7 @@ pub enum ScraperError {
 
 	/// Parse Error
 	/// 
-	/// The website contents could not be parsed.
+	/// Related website data could not be parsed.
 	ParseError(String),
 
 	/// Other
@@ -86,29 +86,29 @@ pub enum ScraperError {
 	Other
 }
 
-impl From<SelectorErrorKind<'_>> for ScraperError {
+impl From<SelectorErrorKind<'_>> for DownloaderError {
 	fn from(value: SelectorErrorKind) -> Self {
-		ScraperError::ParseError(value.to_string())
+		DownloaderError::ParseError(value.to_string())
 	}
 }
 
-impl From<Error> for ScraperError {
+impl From<Error> for DownloaderError {
 	fn from(value: Error) -> Self {
 		let err = value.to_string();
 		if value.is_builder() || value.is_connect() || value.is_redirect() {
-			ScraperError::ConnectionFailed(value.to_string())
+			DownloaderError::ConnectionFailed(value.to_string())
 		} else if value.is_body() || value.is_decode() {
-			ScraperError::ParseError(err)
+			DownloaderError::ParseError(err)
 		} else if value.is_request() || value.is_status() || value.is_timeout() {
-			ScraperError::RequestFailed(err)
+			DownloaderError::RequestFailed(err)
 		} else {
-			ScraperError::Other
+			DownloaderError::Other
 		}
 	}
 }
 
-impl From<ParseError> for ScraperError {
+impl From<ParseError> for DownloaderError {
 	fn from(value: ParseError) -> Self {
-		ScraperError::ParseError(value.to_string())
+		DownloaderError::ParseError(value.to_string())
 	}
 }
