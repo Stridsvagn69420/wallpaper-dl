@@ -1,6 +1,8 @@
-use super::{Webscraper, DownloaderResult};
-use crate::extractors::SelectAttr;
+use super::{ImageDownloader, DownloaderResult, quick_get};
+use crate::webscraper::{SelectAttr, Wrapper};
+use reqwest::Client;
 use scraper::Html;
+use url::Url;
 
 /// ArtStation
 /// 
@@ -12,30 +14,25 @@ pub struct ArtStation {
 	title: SelectAttr
 }
 
-impl Webscraper for ArtStation {
-	fn new(html: &str, url: &url::Url) -> DownloaderResult<Self> {
+impl ImageDownloader for ArtStation {
+	async fn new(client: &Client, url: Url) -> DownloaderResult<Self> {
 		let id = url.path().replace("/artwork/", "");
+		let html = quick_get(client, url.to_owned()).await?.text().await?;
 		Ok(Self {
-			html: Html::parse_document(html),
+			html: Html::parse_document(&html),
 			id,
 			download: SelectAttr::parse("meta[name=\"image\"]", "content")?,
 			title: SelectAttr::parse("meta[name=\"twitter:title\"]", "content")?
 		})
 	}
 
-	fn source_html(&self) -> &Html {
-		&self.html
-	}
-
-	fn selector_download(&self) -> &SelectAttr {
-		&self.download
-	}
-
-	fn selector_title(&self) -> &SelectAttr {
-		&self.title
-	}
-
 	fn image_id(&self) -> &str {
 		&self.id
+	}
+	async fn image_url(&self) -> DownloaderResult<Url> {
+		Wrapper::image_url(&self.html, &self.download)
+	}
+	async fn image_title(&self) -> DownloaderResult<String> {
+		Wrapper::image_title(&self.html, &self.title)
 	}
 }

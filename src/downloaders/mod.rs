@@ -1,7 +1,6 @@
-use crate::extractors::{SelectAttr, src_tag_attr};
 use url::{Url, ParseError};
-use reqwest::Error;
-use scraper::{Html, error::SelectorErrorKind};
+use reqwest::{Client, Error, Response};
+use scraper::error::SelectorErrorKind;
 
 mod alphacoders;
 pub use alphacoders::{WallAbyss, ArtAbyss, ImageAbyss};
@@ -9,24 +8,25 @@ pub use alphacoders::{WallAbyss, ArtAbyss, ImageAbyss};
 mod artstation;
 pub use artstation::ArtStation;
 
+/// Quick download wrapper
+/// 
+/// Shorthand for sending a get request. If successful, the [Response]'s body can be used.
+async fn quick_get(c: &Client, url: Url) -> DownloaderResult<Response> {
+	let resp = c.get(url)
+			.send().await?
+			.error_for_status()?;
+	Ok(resp)
+}
+
 /// Webscraper Downloader Trait
 /// 
 /// Trait for Wallpaper downloaders that rely on webscraping.
-pub trait Webscraper {
+pub trait ImageDownloader {
 	/// New Wallpaper Downloader
 	/// 
 	/// Creates a new Webscraper.
-	/// Requires the HTML source code as well as the requested URL.
-	fn new(html: &str, url: &Url) -> DownloaderResult<Self> where Self: Sized;
-
-	/// Pointer to parsed HTML
-	fn source_html(&self) -> &Html;
-
-	/// Pointer to download selector
-	fn selector_download(&self) -> &SelectAttr;
-
-	/// Pointer to title selector
-	fn selector_title(&self) -> &SelectAttr;
+	/// Requires a preconfigured [Client] as well as the post [Url].
+	async fn new(client: &Client, url: Url) -> DownloaderResult<Self> where Self: Sized;
 
 	/// Image ID
 	/// 
@@ -36,20 +36,12 @@ pub trait Webscraper {
 	/// Image URL
 	/// 
 	/// The source image URL that points to the actual high quality image.
-	fn image_url(&self) -> DownloaderResult<Url> {
-		let Some(url) = src_tag_attr(self.source_html(), self.selector_download()) else {
-			return Err(DownloaderError::ParseError("HTML element or attribute not found.".to_string()));
-		};
-		Ok(Url::parse(url)?)
-	}
+	async fn image_url(&self) -> DownloaderResult<Url>;
 
 	/// Image Title
-	fn image_title(&self) -> DownloaderResult<String> {
-		let Some(title) = src_tag_attr(self.source_html(), self.selector_title()) else {
-			return Err(DownloaderError::ParseError("HTML element or attribute not found.".to_string()));
-		};
-		Ok(title.to_string())
-	}
+	/// 
+	/// The title of the image. Can also be a mix of the title and artist.
+	async fn image_title(&self) -> DownloaderResult<String>;
 }
 
 /// Downloader Result alias
@@ -61,7 +53,7 @@ pub type DownloaderResult<T> = Result<T, DownloaderError>;
 
 /// Downloader Errors
 /// 
-/// Simplified errors for [Webscraper] and [Restapi] structs.
+/// Simplified errors for [ImageDownloader] structs.
 pub enum DownloaderError {
 	/// Connection Failed
 	/// 

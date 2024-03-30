@@ -1,5 +1,6 @@
-use super::{Webscraper, DownloaderError, DownloaderResult};
-use crate::extractors::SelectAttr;
+use super::{ImageDownloader, DownloaderError, DownloaderResult, quick_get};
+use crate::webscraper::{SelectAttr, Wrapper};
+use reqwest::Client;
 use scraper::Html;
 use url::Url;
 
@@ -17,19 +18,31 @@ impl Alphacoders {
 	/// New Alphacoders Core
 	/// 
 	/// This needs some documentation.  
-	/// `html`: The raw HTML source code that will be parsed.  
+	/// `client`: The borrowed Reqwest [Client].
+	/// `url`: The post url 
 	/// `id`: The image ID parsed from the URL.  
 	/// `service_css`: A keyword in the CSS rules of Alphacoders to find the download button.  
 	/// `title_css`: The CSS selector for the HTML element that contains the title field.
-	fn new(html: &str, id: String, service_css: &str, title_css: &str) -> DownloaderResult<Self> {
+	async fn new(client: &Client, url: Url, id: String, service_css: &str, title_css: &str) -> DownloaderResult<Self> {
+		let html = quick_get(client, url).await?.text().await?;
 		let download_css = format!("a#{}_{}_download_button", service_css, id);
 		let download = SelectAttr::parse(&download_css, "href")?;
 		Ok(Self {
-			html: Html::parse_document(html),
+			html: Html::parse_document(&html),
 			id,
 			download,
 			title: SelectAttr::parse(title_css, "title")?
 		})
+	}
+
+	/// Image URL wrapper
+	fn image_url(&self) -> DownloaderResult<Url> {
+		Wrapper::image_url(&self.html, &self.download)
+	}
+
+	/// Image Title wrapper
+	fn image_title(&self) -> DownloaderResult<String> {
+		Wrapper::image_title(&self.html, &self.title)
 	}
 }
 
@@ -40,26 +53,24 @@ pub struct WallAbyss {
 	inner: Alphacoders
 }
 
-impl Webscraper for WallAbyss {
-	fn new(html: &str, url: &Url) -> DownloaderResult<Self> {
-		let Some(query) = url.query() else {
-			return Err(DownloaderError::ParseError("URL Path did not match pattern".to_string()));
+impl ImageDownloader for WallAbyss {
+	async fn new(client: &Client, url: Url) -> DownloaderResult<Self> {
+		let id = match url.query() {
+			Some(x) => x.replace("i=", ""),
+			None => return Err(DownloaderError::ParseError("URL Query did not match pattern".to_string()))
 		};
-		let inner = Alphacoders::new(html, query.replace("i=", ""), "wallpaper", "img#main-content")?;
+		let inner = Alphacoders::new(client, url, id, "wallpaper", "img#main-content").await?;
 		Ok(Self { inner })
 	}
 
-	fn source_html(&self) -> &Html {
-		&self.inner.html
-	}
-	fn selector_download(&self) -> &SelectAttr {
-		&self.inner.download
-	}
-	fn selector_title(&self) -> &SelectAttr {
-		&self.inner.title
-	}
 	fn image_id(&self) -> &str {
 		&self.inner.id
+	}
+	async fn image_url(&self) -> DownloaderResult<Url> {
+		self.inner.image_url()
+	}
+	async fn image_title(&self) -> DownloaderResult<String> {
+		self.inner.image_title()
 	}
 }
 
@@ -70,24 +81,21 @@ pub struct ArtAbyss {
 	inner: Alphacoders
 }
 
-impl Webscraper for ArtAbyss {
-	fn new(html: &str, url: &Url) -> DownloaderResult<Self> {
+impl ImageDownloader for ArtAbyss {
+	async fn new(client: &Client, url: Url) -> DownloaderResult<Self> {
 		let id = url.path().replace("/arts/view/", "");
-		let inner = Alphacoders::new(html, id, "art", "img.img-responsive")?;
+		let inner = Alphacoders::new(client, url, id, "art", "img.img-responsive").await?;
 		Ok(Self { inner })
 	}
 
-	fn source_html(&self) -> &Html {
-		&self.inner.html
-	}
-	fn selector_download(&self) -> &SelectAttr {
-		&self.inner.download
-	}
-	fn selector_title(&self) -> &SelectAttr {
-		&self.inner.title
-	}
 	fn image_id(&self) -> &str {
 		&self.inner.id
+	}
+	async fn image_url(&self) -> DownloaderResult<Url> {
+		self.inner.image_url()
+	}
+	async fn image_title(&self) -> DownloaderResult<String> {
+		self.inner.image_title()
 	}
 }
 
@@ -98,23 +106,20 @@ pub struct ImageAbyss {
 	inner: Alphacoders
 }
 
-impl Webscraper for ImageAbyss {
-	fn new(html: &str, url: &Url) -> DownloaderResult<Self> {
+impl ImageDownloader for ImageAbyss {
+	async fn new(client: &Client, url: Url) -> DownloaderResult<Self> {
 		let id = url.path().replace("/pictures/view/", "");
-		let inner = Alphacoders::new(html, id, "picture", "img.img-responsive")?;
+		let inner = Alphacoders::new(client, url, id, "picture", "img.img-responsive").await?;
 		Ok(Self { inner })
 	}
 
-	fn source_html(&self) -> &Html {
-		&self.inner.html
-	}
-	fn selector_download(&self) -> &SelectAttr {
-		&self.inner.download
-	}
-	fn selector_title(&self) -> &SelectAttr {
-		&self.inner.title
-	}
 	fn image_id(&self) -> &str {
 		&self.inner.id
+	}
+	async fn image_url(&self) -> DownloaderResult<Url> {
+		self.inner.image_url()
+	}
+	async fn image_title(&self) -> DownloaderResult<String> {
+		self.inner.image_title()
 	}
 }

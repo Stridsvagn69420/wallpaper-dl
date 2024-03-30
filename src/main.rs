@@ -5,10 +5,10 @@ use apputils::paintln;
 use reqwest::Client;
 use url::Url;
 
-mod extractors;
+mod webscraper;
 
 mod downloaders;
-use downloaders::{Webscraper, WallAbyss};
+use downloaders::{ImageDownloader, WallAbyss};
 
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION"));
 
@@ -29,31 +29,20 @@ async fn main() -> ExitCode {
 	for url in args.into_iter().filter(|x| x.host_str().is_some_and(|y| y == "wall.alphacoders.com")) {
 		paintln!(Colors::Green, "URL: {}", url);
 
-		paintln!(Colors:: Yellow, "Downloading...");
-
-		let Ok(resp) = client.get(url.clone()).send().await else {
-			paintln!(Colors::Red, "Failed to download HTML source!");
-			return ExitCode::FAILURE;
-		};
-
-		let Ok(html) = resp.text().await else {
-			paintln!(Colors::Red, "Download content was not HTML text!");
-			return ExitCode::FAILURE;
-		};
-
-		let Ok(abyss) = WallAbyss::new(&html, &url) else {
-			paintln!(Colors::Red, "WallpaperAbyss failed to initialize!");
+		paintln!(Colors::Yellow, "Downloading...");
+		let Ok(abyss) = WallAbyss::new(&client, url).await else {
+			paintln!(Colors::Red, "Failed to download image!");
 			return ExitCode::FAILURE;
 		};
 
 		print!("Title: ");
-		paintln!(Colors::Cyan, "{}", abyss.image_title().unwrap_or_default());
+		paintln!(Colors::Cyan, "{}", abyss.image_title().await.unwrap_or_default());
 
 		print!("ID: ");
 		paintln!(Colors::Cyan, "{}", abyss.image_id());
 
-		let Ok(url) = abyss.image_url() else {
-			paintln!(Colors::Red, "");
+		let Ok(url) = abyss.image_url().await else {
+			paintln!(Colors::Red, "Could not retrieve image URL!");
 			return ExitCode::FAILURE;
 		};
 		print!("URL: ");
