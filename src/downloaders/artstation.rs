@@ -1,5 +1,5 @@
-use super::{ImageDownloader, DownloaderResult, quick_get};
-use crate::webscraper::{SelectAttr, Wrapper};
+use super::{Downloader, DownloaderResult, quick_get, SelectAttr, ScraperWrapper};
+use async_trait::async_trait;
 use reqwest::Client;
 use scraper::Html;
 use url::Url;
@@ -14,7 +14,8 @@ pub struct ArtStation {
 	title: SelectAttr
 }
 
-impl ImageDownloader for ArtStation {
+#[async_trait]
+impl Downloader for ArtStation {
 	async fn new(client: &Client, url: Url) -> DownloaderResult<Self> {
 		let id = url.path().replace("/artwork/", "");
 		let html = quick_get(client, url.to_owned()).await?.text().await?;
@@ -29,10 +30,10 @@ impl ImageDownloader for ArtStation {
 	fn image_id(&self) -> &str {
 		&self.id
 	}
-	async fn image_url(&self) -> DownloaderResult<Url> {
-		Wrapper::image_url(&self.html, &self.download)
+	fn image_url(&self) -> DownloaderResult<Url> {
+		ScraperWrapper::image_url(&self.html, &self.download)
 	}
-	async fn image_title(&self) -> DownloaderResult<String> {
-		Wrapper::image_title(&self.html, &self.title)
+	fn image_title(&self) -> DownloaderResult<String> {
+		ScraperWrapper::image_title(&self.html, &self.title)
 	}
 }

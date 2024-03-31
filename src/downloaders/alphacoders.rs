@@ -1,5 +1,5 @@
-use super::{ImageDownloader, DownloaderError, DownloaderResult, quick_get};
-use crate::webscraper::{SelectAttr, Wrapper};
+use super::{Downloader, DownloaderError, DownloaderResult, quick_get, SelectAttr, ScraperWrapper};
+use async_trait::async_trait;
 use reqwest::Client;
 use scraper::Html;
 use url::Url;
@@ -37,23 +37,24 @@ impl Alphacoders {
 
 	/// Image URL wrapper
 	fn image_url(&self) -> DownloaderResult<Url> {
-		Wrapper::image_url(&self.html, &self.download)
+		ScraperWrapper::image_url(&self.html, &self.download)
 	}
 
 	/// Image Title wrapper
 	fn image_title(&self) -> DownloaderResult<String> {
-		Wrapper::image_title(&self.html, &self.title)
+		ScraperWrapper::image_title(&self.html, &self.title)
 	}
 }
 
 /// Wallpaper Abyss
 /// 
 /// Downloader designed for [Wallpaper Abyss](https://wall.alphacoders.com/)
-pub struct WallAbyss {
+pub struct WallpaperAbyss {
 	inner: Alphacoders
 }
 
-impl ImageDownloader for WallAbyss {
+#[async_trait]
+impl Downloader for WallpaperAbyss {
 	async fn new(client: &Client, url: Url) -> DownloaderResult<Self> {
 		let id = match url.query() {
 			Some(x) => x.replace("i=", ""),
@@ -66,10 +67,10 @@ impl ImageDownloader for WallAbyss {
 	fn image_id(&self) -> &str {
 		&self.inner.id
 	}
-	async fn image_url(&self) -> DownloaderResult<Url> {
+	fn image_url(&self) -> DownloaderResult<Url> {
 		self.inner.image_url()
 	}
-	async fn image_title(&self) -> DownloaderResult<String> {
+	fn image_title(&self) -> DownloaderResult<String> {
 		self.inner.image_title()
 	}
 }
@@ -81,7 +82,8 @@ pub struct ArtAbyss {
 	inner: Alphacoders
 }
 
-impl ImageDownloader for ArtAbyss {
+#[async_trait]
+impl Downloader for ArtAbyss {
 	async fn new(client: &Client, url: Url) -> DownloaderResult<Self> {
 		let id = url.path().replace("/arts/view/", "");
 		let inner = Alphacoders::new(client, url, id, "art", "img.img-responsive").await?;
@@ -91,10 +93,10 @@ impl ImageDownloader for ArtAbyss {
 	fn image_id(&self) -> &str {
 		&self.inner.id
 	}
-	async fn image_url(&self) -> DownloaderResult<Url> {
+	fn image_url(&self) -> DownloaderResult<Url> {
 		self.inner.image_url()
 	}
-	async fn image_title(&self) -> DownloaderResult<String> {
+	fn image_title(&self) -> DownloaderResult<String> {
 		self.inner.image_title()
 	}
 }
@@ -106,7 +108,8 @@ pub struct ImageAbyss {
 	inner: Alphacoders
 }
 
-impl ImageDownloader for ImageAbyss {
+#[async_trait]
+impl Downloader for ImageAbyss {
 	async fn new(client: &Client, url: Url) -> DownloaderResult<Self> {
 		let id = url.path().replace("/pictures/view/", "");
 		let inner = Alphacoders::new(client, url, id, "picture", "img.img-responsive").await?;
@@ -116,10 +119,10 @@ impl ImageDownloader for ImageAbyss {
 	fn image_id(&self) -> &str {
 		&self.inner.id
 	}
-	async fn image_url(&self) -> DownloaderResult<Url> {
+	fn image_url(&self) -> DownloaderResult<Url> {
 		self.inner.image_url()
 	}
-	async fn image_title(&self) -> DownloaderResult<String> {
+	fn image_title(&self) -> DownloaderResult<String> {
 		self.inner.image_title()
 	}
 }
