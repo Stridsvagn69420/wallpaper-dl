@@ -12,10 +12,12 @@ pub struct Wallhaven {
 
 #[async_trait]
 impl Downloader for Wallhaven {
-	async fn new(client: &Client, url: Url) -> DownloaderResult<Self> {
-		let apires = quick_get(client, url).await?
+	async fn new(client: &Client, mut url: Url) -> DownloaderResult<Self> {
+		let api_path = format!("/api/v1{}", url.path());
+		url.set_path(&api_path);
+		let api_res = quick_get(client, url).await?
 			.json::<WallhavenApi>().await?;
-		Ok(apires.data)
+		Ok(api_res.data)
 	}
 
 	fn image_id(&self) -> &str {

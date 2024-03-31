@@ -6,7 +6,6 @@ use reqwest::Client;
 use url::Url;
 
 mod downloaders;
-use downloaders::{Downloader, WallpaperAbyss};
 
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION"));
 
@@ -24,13 +23,14 @@ async fn main() -> ExitCode {
 	};
 
 	// Temporary test for Alphacoders
-	for url in args.into_iter().filter(|x| x.host_str().is_some_and(|y| y == "wall.alphacoders.com")) {
+	for url in args.into_iter() {
+		println!();
 		paintln!(Colors::Green, "URL: {}", url);
 
 		paintln!(Colors::Yellow, "Downloading...");
-		let Ok(abyss) = WallpaperAbyss::new(&client, url).await else {
+		let Ok(abyss) = downloaders::from_url(&client, url).await else {
 			paintln!(Colors::Red, "Failed to download image!");
-			return ExitCode::FAILURE;
+			continue;
 		};
 
 		print!("Title: ");
