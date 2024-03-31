@@ -11,7 +11,7 @@ const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VE
 
 #[tokio::main]
 async fn main() -> ExitCode {
-	let args: Vec<Url> = env::args().filter_map(|x| Url::parse(&x).ok()).collect();
+	let args: Vec<Url> = env::args().skip(1).filter_map(|x| Url::parse(&x).ok()).collect();
 	if args.len() < 2 {
 		paintln!(Colors::Red, "No URLs provided!");
 		return ExitCode::FAILURE;
