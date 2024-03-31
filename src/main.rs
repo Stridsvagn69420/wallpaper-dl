@@ -6,6 +6,7 @@ use reqwest::Client;
 use url::Url;
 
 mod downloaders;
+use downloaders::DownloaderError;
 
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION"));
 
@@ -27,11 +28,23 @@ async fn main() -> ExitCode {
 		println!();
 		paintln!(Colors::Green, "URL: {}", url);
 
-		paintln!(Colors::Yellow, "Downloading...");
+		/*paintln!(Colors::Yellow, "Downloading...");
 		let Ok(abyss) = downloaders::from_url(&client, url).await else {
 			paintln!(Colors::Red, "Failed to download image!");
 			continue;
-		};
+		};*/
+
+        let abyss = match downloaders::from_url(&client, url).await {
+            Ok(dl) => dl,
+            Err(err) => {
+                let msg = match err {
+                    DownloaderError::Other => "Website not supported".to_string(),
+                    _ => format!("An error occured during the initial request: {:?}", err)
+                };
+                paintln!(Colors::Red, "{}", msg);
+                continue;
+            }
+        };
 
 		print!("Title: ");
 		match abyss.image_title() {
