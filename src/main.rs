@@ -8,7 +8,9 @@ use url::Url;
 mod downloaders;
 use downloaders::DownloaderError;
 
-const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION"));
+mod config;
+mod meta;
+use meta::USER_AGENT;
 
 #[tokio::main]
 async fn main() -> ExitCode {

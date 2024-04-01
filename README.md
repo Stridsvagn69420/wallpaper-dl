@@ -32,8 +32,5 @@ This is a mock-up configuration with default values set (used if config is missi
 basedir = "~/Pictures/Wallpapers" # Root directory of your wallpaper collection. Resolves "~", maybe also env vars.
 sort = "website" # How to sort using subdirectories. "website", "domain", "artist", "none". Directory names will be treated case-insensitive. Can be overwritted per execution via flags.
 format = "{width}x{height}_{title}_{id}" # How filenames should be formatted (excluding the extension). {original} will use the filename as if you were to download it via a browser. WIP!!! But will attempt to find a file name by hints, e.g. URL or Content-Dispositon.
-
-[download]
-delay = 300 # Per-website artificial delay in milliseconds to mitigate timeouts.
 ```
 This will most likely change during development.
