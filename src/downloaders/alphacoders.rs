@@ -1,4 +1,4 @@
-use super::{quick_get, Downloader, DownloaderError, DownloaderResult, ScraperWrapper, SelectAttr};
+use super::{quick_get, Downloader, DownloaderError, DownloaderResult, ScraperWrapper, SelectAttr, Urls};
 use async_trait::async_trait;
 use reqwest::Client;
 use scraper::{Html, Selector};
@@ -28,7 +28,7 @@ impl Alphacoders {
 		url: Url,
 		id: String,
 		service_css: &str,
-		title_css: &str,
+		title_css: &str	
 	) -> DownloaderResult<Self> {
 		let html = quick_get(client, url).await?.text().await?;
 		let download_css = format!("a#{}_{}_download_button", service_css, id);
@@ -42,8 +42,9 @@ impl Alphacoders {
 	}
 
 	/// Image URL wrapper
-	fn image_url(&self) -> DownloaderResult<Url> {
-		ScraperWrapper::image_url(&self.html, &self.download)
+	fn image_url(&self) -> DownloaderResult<Urls> {
+		let url = ScraperWrapper::image_url(&self.html, &self.download)?;
+		Ok(Urls::Single(url))
 	}
 
 	/// Image Title wrapper
@@ -72,11 +73,7 @@ impl Downloader for WallpaperAbyss {
 	async fn new(client: &Client, url: Url) -> DownloaderResult<Self> {
 		let id = match url.query() {
 			Some(x) => x.replace("i=", ""),
-			None => {
-				return Err(DownloaderError::ParseError(
-					"URL Query did not match pattern".to_string(),
-				))
-			}
+			None => return Err(DownloaderError::ParseError("URL Query did not match pattern".to_string()))
 		};
 		let inner = Alphacoders::new(client, url, id, "wallpaper", "img#main-content").await?;
 		Ok(Self(inner))
@@ -85,7 +82,7 @@ impl Downloader for WallpaperAbyss {
 	fn image_id(&self) -> &str {
 		&self.0.id
 	}
-	fn image_url(&self) -> DownloaderResult<Url> {
+	fn image_url(&self) -> DownloaderResult<Urls> {
 		self.0.image_url()
 	}
 	fn image_title(&self) -> DownloaderResult<String> {
@@ -112,7 +109,7 @@ impl Downloader for ArtAbyss {
 	fn image_id(&self) -> &str {
 		&self.0.id
 	}
-	fn image_url(&self) -> DownloaderResult<Url> {
+	fn image_url(&self) -> DownloaderResult<Urls> {
 		self.0.image_url()
 	}
 	fn image_title(&self) -> DownloaderResult<String> {
@@ -139,7 +136,7 @@ impl Downloader for ImageAbyss {
 	fn image_id(&self) -> &str {
 		&self.0.id
 	}
-	fn image_url(&self) -> DownloaderResult<Url> {
+	fn image_url(&self) -> DownloaderResult<Urls> {
 		self.0.image_url()
 	}
 	fn image_title(&self) -> DownloaderResult<String> {

@@ -94,7 +94,7 @@ pub type WallpaperDb = HashMap<Hash, WallpaperEntry>;
 #[derive(Deserialize, Serialize)]
 pub struct WallpaperEntry {
 	source: String,
-	file: PathBuf,
+	file: PathBuf
 }
 
 /// Wallpaper config
@@ -105,7 +105,7 @@ pub struct Wallpaper {
 	/// Current Wallpaper Hash
 	///
 	/// The [Hash](struct@Hash) of the currently selected wallpaper inside `wallpapers.toml`.
-	pub current: Hash,
+	pub current: Hash
 }
 
 /// Filesystem settings
@@ -114,7 +114,7 @@ pub struct Wallpaper {
 #[derive(Deserialize, Serialize)]
 pub struct Filesystem {
 	pub path: PathBuf,
-	pub sort: Sort,
+	pub sort: Sort
 }
 
 impl Default for Filesystem {
@@ -133,5 +133,5 @@ impl Default for Filesystem {
 pub enum Sort {
 	Hostname,
 	Genre,
-	None,
+	None
 }

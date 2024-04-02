@@ -1,17 +1,8 @@
-use super::{quick_get, Downloader, DownloaderError, DownloaderResult};
+use super::{quick_get, Downloader, DownloaderError, DownloaderResult, Urls};
 use async_trait::async_trait;
 use reqwest::Client;
 use serde::Deserialize;
 use url::Url;
-
-#[derive(Deserialize)]
-pub struct Wallhaven {
-	path: String,
-	id: String,
-	category: String,
-	purity: String,
-	tags: Vec<Tag>,
-}
 
 #[derive(Deserialize, Clone)]
 struct Tag {
@@ -35,6 +26,18 @@ struct WallhavenApi {
 	data: Wallhaven,
 }
 
+/// Wallhaven
+/// 
+/// Downloader designed for [Wallhaven](https://wallhaven.cc/)
+#[derive(Deserialize)]
+pub struct Wallhaven {
+	path: String,
+	id: String,
+	category: String,
+	purity: String,
+	tags: Vec<Tag>,
+}
+
 #[async_trait]
 impl Downloader for Wallhaven {
 	async fn new(client: &Client, mut url: Url) -> DownloaderResult<Self> {
@@ -47,8 +50,9 @@ impl Downloader for Wallhaven {
 	fn image_id(&self) -> &str {
 		&self.id
 	}
-	fn image_url(&self) -> DownloaderResult<Url> {
-		Ok(Url::parse(&self.path)?)
+	fn image_url(&self) -> DownloaderResult<Urls> {
+		let url = Url::parse(&self.path)?;
+		Ok(url.into())
 	}
 	fn image_title(&self) -> DownloaderResult<String> {
 		Err(DownloaderError::Other)
