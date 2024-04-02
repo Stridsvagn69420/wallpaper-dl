@@ -36,4 +36,7 @@ impl Downloader for ArtStation {
 	fn image_title(&self) -> DownloaderResult<String> {
 		ScraperWrapper::image_title(&self.html, &self.title)
 	}
+	fn image_tags(&self) -> DownloaderResult<Vec<String>> {
+		todo!() // TODO: Find a way to read tags
+	}
 }

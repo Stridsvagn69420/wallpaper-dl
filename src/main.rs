@@ -15,7 +15,7 @@ use meta::USER_AGENT;
 #[tokio::main]
 async fn main() -> ExitCode {
 	let args: Vec<Url> = env::args().skip(1).filter_map(|x| Url::parse(&x).ok()).collect();
-	if args.len() < 1 {
+	if args.is_empty() {
 		paintln!(Colors::Red, "No URLs provided!");
 		return ExitCode::FAILURE;
 	}

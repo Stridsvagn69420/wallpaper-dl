@@ -73,6 +73,9 @@ impl Downloader for WallpaperAbyss {
 	fn image_title(&self) -> DownloaderResult<String> {
 		self.inner.image_title()
 	}
+	fn image_tags(&self) -> DownloaderResult<Vec<String>> {
+		todo!() // TODO: Find a way to read tags
+	}
 }
 
 /// Art Abyss
@@ -99,6 +102,9 @@ impl Downloader for ArtAbyss {
 	fn image_title(&self) -> DownloaderResult<String> {
 		self.inner.image_title()
 	}
+	fn image_tags(&self) -> DownloaderResult<Vec<String>> {
+		todo!() // TODO: Find a way to read tags
+	}
 }
 
 /// Image Abyss
@@ -124,5 +130,8 @@ impl Downloader for ImageAbyss {
 	}
 	fn image_title(&self) -> DownloaderResult<String> {
 		self.inner.image_title()
+	}
+	fn image_tags(&self) -> DownloaderResult<Vec<String>> {
+		todo!() // TODO: Find a way to read tags
 	}
 }

@@ -55,6 +55,17 @@ pub trait Downloader {
     /// in order to let the main thread know that it should look for title hints when downloading the data
     /// or hash it and use that as a title.
     fn image_title(&self) -> DownloaderResult<String>;
+
+	/// Image Tags
+	/// 
+	/// Returns a collection of tags related to the image.
+	/// If a website does not use tags, it should attempt to parse useful data out of other elements, e.g. the title or URL.
+	/// A [Other error](DownloaderError::Other) means it could not find any tags.
+	/// 
+	/// The Downloaders themselves don't have to remove duplicates,
+	/// but the idea is that the main thread will sort and [dedup](Vec::dedup) anyway,
+	/// so that it does not have to be implemented every single time.
+	fn image_tags(&self) -> DownloaderResult<Vec<String>>;
 }
 
 macro_rules! ok_box {

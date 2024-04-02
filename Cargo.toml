@@ -21,6 +21,7 @@ async-trait = "0.1"
 tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.11", features = ["tokio-rustls", "rustls-tls-native-roots", "deflate", "gzip", "brotli", "json"], default-features = false }
 scraper = "0.19"
+blake3 = { version = "1.5", features = ["serde", "neon"] }
 
 [profile.release]
 strip = true

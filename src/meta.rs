@@ -9,6 +9,7 @@ pub const APP_DESC: &str = env!("CARGO_PKG_DESCRIPTION");
 
 // Config Constants
 pub const CONFIG_FILE: &str = "config.toml";
+pub const WALLPAPERS_FILE: &str = "wallpapers.toml";
 
 // HTTP Constants
 pub const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION")); 
