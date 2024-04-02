@@ -1,5 +1,6 @@
 use std::env;
 use std::process::ExitCode;
+use apputils::paint;
 use apputils::Colors;
 use apputils::paintln;
 use reqwest::Client;
@@ -25,43 +26,56 @@ async fn main() -> ExitCode {
 		return ExitCode::FAILURE;
 	};
 
-	// Temporary test for Alphacoders
+	// Temporary proof-of-concept and blockign iterator
 	for url in args.into_iter() {
-		println!();
-		paintln!(Colors::Green, "URL: {}", url);
+		print!("URL: ");
+		paintln!(Colors::Green, "{url}");
 
-		/*paintln!(Colors::Yellow, "Downloading...");
-		let Ok(abyss) = downloaders::from_url(&client, url).await else {
-			paintln!(Colors::Red, "Failed to download image!");
-			continue;
-		};*/
-
-        let abyss = match downloaders::from_url(&client, url).await {
-            Ok(dl) => dl,
-            Err(err) => {
-                let msg = match err {
-                    DownloaderError::Other => "Website not supported".to_string(),
-                    _ => format!("An error occured during the initial request: {:?}", err)
-                };
-                paintln!(Colors::Red, "{}", msg);
-                continue;
-            }
-        };
+		let walldl = match downloaders::from_url(&client, url).await {
+			Ok(dl) => dl,
+			Err(err) => {
+				let msg = match err {
+					DownloaderError::Other => "Website not supported".to_string(),
+					_ => format!("An error occured during the initial request: {:?}", err)
+				};
+				paintln!(Colors::Red, "{}", msg);
+				continue;
+			}
+		};
 
 		print!("Title: ");
-		match abyss.image_title() {
+		match walldl.image_title() {
 			Ok(title ) => paintln!(Colors::Cyan, "{}", title),
 			Err(_) => paintln!(Colors::Red, "Not found")
 		}
 
 		print!("ID: ");
-		paintln!(Colors::Cyan, "{}", abyss.image_id());
+		paintln!(Colors::Cyan, "{}", walldl.image_id());
 
 		print!("URL: ");
-		match abyss.image_url() {
+		match walldl.image_url() {
 			Ok(url ) => paintln!(Colors::Cyan, "{}", url),
 			Err(_) => paintln!(Colors::Red, "Could not be retrieved!")
 		}
+
+		print!("Tags: ");
+		match walldl.image_tags() {
+			Ok(mut tags) => {
+				tags.sort_unstable();
+				tags.dedup();
+				let mut it = tags.into_iter().peekable();
+				while let Some(tag) = it.next() {
+					paint!(Colors::Cyan, "{tag}");
+					if it.peek().is_some() {
+						print!(", ");
+					}				
+				}
+				println!("");
+			},
+			Err(_) => paintln!(Colors::Red, "Could not be retrieved!")
+		}
+
+		println!("\n{}\n", "-".repeat(50));
 	}
 
 	ExitCode::SUCCESS

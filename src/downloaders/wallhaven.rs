@@ -58,7 +58,8 @@ impl Downloader for Wallhaven {
 		self.tags.clone()
 			.into_iter()
 			.flat_map(Into::<Vec<String>>::into)
-			.for_each(|x| tags.push(x));
+			.filter(|x| !x.is_empty())
+			.for_each(|y| tags.push(y));
 		Ok(tags)
 	}
 }
