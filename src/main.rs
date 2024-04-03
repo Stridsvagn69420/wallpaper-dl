@@ -57,8 +57,8 @@ async fn main() -> ExitCode {
 		match walldl.image_url() {
 			Err(_) => paintln!(Colors::Red, "Could not be retrieved!"),
 			Ok(url) => match url {
-				Urls::Single(url) => paintln!(Colors::Yellow, "{url}"),
-				Urls::Multi(urls) => pretty_print(Colors::Yellow, urls)
+				Urls::Single(url) => paintln!(Colors::Red, "{url}"),
+				Urls::Multi(urls) => pretty_print(Colors::Red, urls)
 			}
 		}
 
