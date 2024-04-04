@@ -1,6 +1,9 @@
 use apputils::{Colors, paint, paintln};
+use blake3::Hash;
 use reqwest::Client;
 use std::env;
+use std::path::PathBuf;
+use std::str::FromStr;
 use std::process::ExitCode;
 use url::Url;
 
@@ -8,17 +11,140 @@ mod downloaders;
 use downloaders::{DownloaderError, Urls};
 
 mod config;
-mod meta;
-use meta::USER_AGENT;
+use config::{load_db, Config, WallpaperDb};
 
-#[tokio::main]
+mod meta;
+use meta::{Info, USER_AGENT};
+
+use crate::config::Wallpaper;
+
+/// Main Thread
+/// 
+/// The main function and entry of this application.
+#[tokio::main(flavor = "multi_thread")]
 async fn main() -> ExitCode {
-	let args: Vec<Url> = env::args()
+	// Get Command-Line Args excluding the binary path
+	let args: Vec<String> = env::args_os()
 		.skip(1)
-		.filter_map(|x| Url::parse(&x).ok())
+		.filter_map(|x| x.into_string().ok())
 		.collect();
-	if args.is_empty() {
-		paintln!(Colors::Red, "No URLs provided!");
+
+	// Parse first argument
+	let Some(cmd) = args.first() else {
+		return Info::help(true);
+	};
+	match cmd.as_str() {
+		"-h" | "--help" => Info::help(false),
+		"-V" | "--version" => Info::version(),
+		"current" => current(args.get(1).cloned()).await,
+		_ => {
+			// load config and db
+			let cfg = Config::load().unwrap_or_default();
+			let db = load_db().unwrap_or_default();
+
+			let urls: Vec<Url> = args.into_iter()
+				.filter_map(|x| Url::parse(&x).ok())
+				.collect();
+			download(cfg, db, Urls::Multi(urls)).await
+		}
+	}
+}
+
+/// `current` Subcommand
+/// 
+/// The subcommand that either displays the path to your current wallpaper or sets it.
+async fn current(arg: Option<String>) -> ExitCode {
+	// Load Config
+	let mut wallcfg = match Config::load() {
+		Ok(x) => x,
+		Err(err) => {
+			if arg.is_none() {
+				// User intends to read a value from a file that does not exist
+				paintln!(Colors::Yellow, "Could not read config file: {err}");
+				return ExitCode::FAILURE;
+			}
+			Config::default()
+		}
+	};
+
+	// Load database (absolutely needed for this)
+	let Ok(db) = load_db() else {
+		paintln!(Colors::RedBold, "Could not read or parse wallpaper database");
+		return ExitCode::FAILURE;
+	};
+
+	// Switch between getter and setter logic
+	let Some(param) = arg else {
+		// Read Hash value from config
+		let Some(wcfg) = wallcfg.wallpaper else {
+			paintln!(Colors::Yellow, "No wallpaper was set");
+			return ExitCode::FAILURE;
+		};
+		// Read entry in Database
+		let Some(wdb) = db.get(&wcfg.current) else {
+			paintln!(Colors::Yellow, "Wallpaper not found in database");
+			return ExitCode::FAILURE;
+		};
+		// Just print
+		println!("{}", wdb.file.as_path().to_string_lossy());
+		return ExitCode::SUCCESS;
+	};
+
+	// Parse the parameter
+	if let Ok(url) = Url::parse(&param) {
+		// Find Hash Key by Value Property, download Wallpaper if not found
+		if let Some(entry) = db.iter().find(|x| x.1.source == url.to_string()) {
+			let newcfg = Wallpaper { current: entry.0.to_owned() };
+			wallcfg.wallpaper = Some(newcfg);
+		}
+		paint!(Colors::Magenta, "URL ");
+		paint!(Colors::MagentaBold, "{url}");
+		paintln!(Colors::Magenta, " not found in database!");
+		return download(wallcfg, db, Urls::Single(url)).await;
+
+	} else if let Ok(hash) = Hash::from_str(&param) {
+		// Check if Hash exists and update config if so
+		if db.get(&hash).is_none() {
+			paint!(Colors::Red, "Hash ");
+			paint!(Colors::RedBold, "{hash}");
+			paintln!(Colors::Red, " not found in database!");
+			return ExitCode::FAILURE;
+		}
+		wallcfg.wallpaper = Some(Wallpaper { current: hash });		
+
+	} else {
+		let path = PathBuf::from(param.clone());
+		let Some(entry) = db.iter().find(|x| x.1.file == path) else {
+			paint!(Colors::Red, "File ");
+			paint!(Colors::RedBold, "{param}");
+			paintln!(Colors::Red, " not found in database!");
+			return ExitCode::FAILURE;
+		};
+		wallcfg.wallpaper = Some(Wallpaper { current: entry.0.to_owned() });	
+	}
+
+	// Attempt to save config
+	if let Err(err) = wallcfg.save() {
+		paint!(Colors::Red, "Could not save configuration: ");
+		paintln!(Colors::RedBold, "{err}");
+		return ExitCode::FAILURE;
+	}
+	ExitCode::SUCCESS
+}
+
+
+/// Downloader loop
+/// 
+/// The main function that downloads the provided images
+/// and prints status information to the console.
+async fn download(config: Config, database: WallpaperDb, list: Urls) -> ExitCode {
+	let urls = match list {
+		Urls::Single(x) => vec![x],
+		Urls::Multi(y) => y,
+	};
+
+	if urls.is_empty() {
+		paintln!(Colors::RedBold, "No URLs provided!");
 		return ExitCode::FAILURE;
 	}
 
@@ -27,8 +153,8 @@ async fn main() -> ExitCode {
 		return ExitCode::FAILURE;
 	};
 
-	// Temporary proof-of-concept and blockign iterator
-	for url in args.into_iter() {
+	// BEGIN Temporary proof-of-concept and blocking iterator
+	for url in urls.into_iter() {
 		print!("URL: ");
 		paintln!(Colors::Green, "{url}");
 
@@ -58,7 +184,7 @@ async fn main() -> ExitCode {
 			Err(_) => paintln!(Colors::Red, "Could not be retrieved!"),
 			Ok(url) => match url {
 				Urls::Single(url) => paintln!(Colors::Red, "{url}"),
-				Urls::Multi(urls) => pretty_print(Colors::Red, urls)
+				Urls::Multi(urls) => Colors::Red.println(", ", urls)
 			}
 		}
 
@@ -68,26 +194,13 @@ async fn main() -> ExitCode {
 			Ok(mut tags) => {
 				tags.sort_unstable();
 				tags.dedup();
-				pretty_print(Colors::Blue, tags);
+				Colors::Blue.println(", ", tags);
 			}
 		}
 
 		println!("\n{}\n", "-".repeat(50));
 	}
+	// END Temporary proof-of-concept and blocking iterator
 
 	ExitCode::SUCCESS
-}
-
-fn pretty_print<I: IntoIterator>(c: Colors, vec: I)
-where
-	<I as IntoIterator>::Item: std::fmt::Display,
-{
-	let mut iter = vec.into_iter().peekable();
-	while let Some(item) = iter.next() {
-		paint!(c, "{item}");
-		if iter.peek().is_some() {
-			print!(", ");
-		}
-	}
-	println!();
 }

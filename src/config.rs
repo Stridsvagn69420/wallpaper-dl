@@ -27,8 +27,15 @@ pub type WallpaperDb = HashMap<Hash, WallpaperEntry>;
 /// The entry in `wallpapers.toml`'s map.
 #[derive(Deserialize, Serialize)]
 pub struct WallpaperEntry {
-	source: String,
-	file: PathBuf,
+	/// Source Link
+	/// 
+	/// The [Url](url::Url) as a [String], because it does not implement [Serialize] and [Deserialize].
+	pub source: String,
+
+	/// File Path
+	/// 
+	/// The [Path](PathBuf) to the wallpaper in question.
+	pub file: PathBuf,
 }
 
 /// Load wallpaper database table
@@ -111,7 +118,7 @@ impl Default for Filesystem {
 	fn default() -> Self {
 		Self {
 			// 99% of the time $HOME is set, so unless you fucked up basic Linux commands, this won't panic.
-			path: home_dir().unwrap().join("Pictures"),
+			path: home_dir().join("Pictures"),
 			sort: Sort::Hostname,
 		}
 	}

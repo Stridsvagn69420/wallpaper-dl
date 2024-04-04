@@ -7,7 +7,7 @@
 [crate]: https://crates.io/crates/wallpaper-dl
 [github]: https://github.com/Stridsvagn69420/wallpaper-dl
 
-Web scraper for downloading wallpapers from various sites
+Wallpaper downloader for various websites
 
 ## Supported Websites
 - [Wallhaven](https://wallhaven.cc/)
