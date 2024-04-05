@@ -100,12 +100,23 @@ pub trait Downloader {
 /// Since some websites have multiple images per post,
 /// this enum carries either a single [Url] or a [Vec] of it,
 /// so that the main thread does not have to deal with uneccesary Array operations.
+#[derive(PartialEq)]
 pub enum Urls {
 	/// A single URL
 	Single(Url),
 
 	/// Multiple URLs
 	Multi(Vec<Url>),
+}
+
+impl Urls {
+	/// Is [Single](Urls::Single)?
+	pub fn is_single(&self) -> bool {
+		match self {
+			Urls::Single(_) => true,
+			Urls::Multi(_) => false,
+		}
+	}
 }
 
 impl From<Url> for Urls {
