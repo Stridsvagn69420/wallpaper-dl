@@ -1,7 +1,7 @@
 use apputils::{paint, paintln, Colors};
 use blake3::{hash, Hash};
 use reqwest::blocking::Client;
-use std::{env, path::Path};
+use std::env;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -93,12 +93,9 @@ fn current(arg: Option<String>) -> ExitCode {
 			return download(wallcfg, db, Urls::Single(url));
 		};
 		entry.0.to_owned()
-	} else if let Ok(hash) = Hash::from_str(&param) {
-		// Check if Hash exists and update config
-		if db.get(&hash).is_none() {
-			return MainErr::db_param_not_found(Colors::Red, Colors::RedBold, "Hash", hash);
-		}
-		hash
+	} else if Hash::from_str(&param).is_ok() && db.get(&param).is_some() {
+		// Check if Hash exists
+		param
 	} else {
 		// Find Hash Key by File property
 		let path = PathBuf::from(&param);
@@ -135,11 +132,14 @@ fn download(mut config: Config, mut database: WallpaperDb, list: Urls) -> ExitCo
 	allurls.dedup();
 	
 	// Filter out already existing Wallpapers
-	let already_exists: Vec<Url> = database.values()
+	let mut already_exists: Vec<Url> = database.values()
 		.filter_map(|x| Url::from_str(&x.source).ok())
 		.collect();
+	already_exists.sort_unstable();
+	already_exists.dedup();
+
 	let urls: Vec<Url> = allurls.into_iter()
-		.filter(|x| already_exists.binary_search(x).is_ok())
+		.filter(|x| already_exists.binary_search(x).is_err())
 		.collect();
 	if urls.is_empty() {
 		return DownErr::new_urls();
@@ -154,12 +154,13 @@ fn download(mut config: Config, mut database: WallpaperDb, list: Urls) -> ExitCo
 	let wallmetadata: Vec<(Url, WallpaperMeta, String)> = urls.into_iter()
 	.filter_map(|link| {
 		let host = link.host_str().unwrap_or("Website").to_owned();
-		let meta = match downloaders::from_url(&client, link.clone()).and_then(TryInto::<WallpaperMeta>::try_into) {
+		let meta = match downloaders::from_url(&client, link.clone(), config.download.delay).and_then(TryInto::<WallpaperMeta>::try_into) {
 			Ok(x) => x,
 			Err(err) => {
 				return DownErr::init_req(err, &host);
 			}
 		};
+		println!(); // downloaders::from_url does not create a newline
 		Some((link, meta, host))
 	})
 	.collect();
@@ -176,14 +177,14 @@ fn download(mut config: Config, mut database: WallpaperDb, list: Urls) -> ExitCo
 
 		for wall in Vec::from(&wallmeta.images) {
 			count += 1;
-			paint!(Colors::Cyan, "  Downloading ");
-			paint!(Colors::CyanBold, "{}@{host}", wallmeta.id);
+			paint!(Colors::CyanBold, "  Downloading ");
+			print!("{source}");
 
-			let Ok(data) = Filedown::download_file(&client, &wallmeta, wall) else {
+			let Ok(data) = Filedown::download_file(&client, config.download.delay, &wallmeta, wall) else {
 				paintln!(Colors::RedBold, " FAILED");
 				continue;
 			};
-			paint!(Colors::MagentaBold, " ↓ ");
+			paint!(Colors::CyanBold, " ↓ ");
 
 			// Format Filename and Folder Path
 			let file = if single {
@@ -191,22 +192,25 @@ fn download(mut config: Config, mut database: WallpaperDb, list: Urls) -> ExitCo
 			} else {
 				Filedown::format_file(&wallmeta, data.1, data.2, Some(count))
 			};
-			let dir = Filedown::resolve_path(&config, &host, &wallmeta.tags);
+			let reldir = Filedown::resolve_path(&config, &host, &wallmeta.tags);
+			let dir = config.download.path.join(&reldir);
 
 			// Save file data
-			if Filedown::save_file(dir, &file, &data.0).is_err() {
+			let Ok(filepath) = Filedown::save_file(dir, &file, &data.0) else {
 				paintln!(Colors::Red, " Failed to write to disk!");
 				continue;
-			}
+			};
 
 			// Update database
-			let filehash = hash(&data.0);
+			let filehash = hash(&data.0).to_string();
 			let entry = WallpaperEntry {
 				source: source.to_string(),
-				file: Path::new(&file).to_path_buf()
+				file: reldir.join(file)
 			};
-			database.insert(filehash, entry);
-			paintln!(Colors::BlueBold, "Saved!");
+			database.insert(filehash.clone(), entry);
+
+			paint!(Colors::Blue, "Saved at ");
+			paintln!(Colors::BlueBold, "{}", filepath.to_string_lossy());
 
 			// Update config
 			if update_hash {
@@ -216,7 +220,7 @@ fn download(mut config: Config, mut database: WallpaperDb, list: Urls) -> ExitCo
 	}
 
 	// 3. Result
-	let database_store_fail = save_db(&database).is_err();
 	let config_store_failed = config.save().is_err() && update_hash;
+	let database_store_fail = save_db(&database).is_err();
 	DownErr::finish(config_store_failed, database_store_fail)
 }

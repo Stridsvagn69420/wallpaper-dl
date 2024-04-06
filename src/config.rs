@@ -1,7 +1,6 @@
 use crate::meta::{APP_NAME, CONFIG_FILE, WALLPAPERS_FILE};
 use apputils::config::{Appdata, Cfg};
 use apputils::dirs::home_dir;
-use blake3::Hash;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::default::Default;
@@ -20,12 +19,13 @@ fn to_io_err(err: impl Error + Send + Sync + 'static) -> io::Error {
 /// Wallpaper Database alias
 ///
 /// The type for `wallpapers.toml`'s structure.
-pub type WallpaperDb = HashMap<Hash, WallpaperEntry>;
+/// Apparently [toml] is stupid and it can't just use `to_string()` on a type that implements the trait for it...
+pub type WallpaperDb = HashMap<String, WallpaperEntry>;
 
 /// Wallpaper Database entry
 ///
 /// The entry in `wallpapers.toml`'s map.
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct WallpaperEntry {
 	/// Source Link
 	/// 
@@ -57,7 +57,7 @@ pub fn save_db(db: &WallpaperDb) -> io::Result<()> {
 /// Config super struct
 ///
 /// The struct that combines all the sub config structs.
-#[derive(Deserialize, Serialize, Default, Clone)]
+#[derive(Deserialize, Serialize, Default, Clone, Debug)]
 pub struct Config {
 	/// Download config
 	pub download: Download,
@@ -96,22 +96,23 @@ impl Config {
 /// Wallpaper config
 ///
 /// The Wallpaper sub-struct.
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct Wallpaper {
 	/// Current Wallpaper Hash
 	///
-	/// The [Hash](struct@Hash) of the currently selected wallpaper inside `wallpapers.toml`.
-	pub current: Hash,
+	/// The ~~[Hash](struct@Hash)~~ actually [String] of the currently selected wallpaper inside `wallpapers.toml`.
+	pub current: String
 }
 
 /// Download settings
 ///
 /// Sub-struct for configuring donwloading related settings.
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 #[serde(default)]
 pub struct Download {
 	pub path: PathBuf,
 	pub sort: Sort,
+	pub delay: u64
 }
 
 impl Default for Download {
@@ -119,14 +120,15 @@ impl Default for Download {
 		Self {
 			// 99% of the time $HOME is set, so unless you fucked up basic Linux commands, this won't panic.
 			path: home_dir().join("Pictures"),
-			sort: Sort::Hostname
+			sort: Sort::Hostname,
+			delay: 450
 		}
 	}
 }
 
 /// Sorting Methods
-#[derive(Deserialize, Serialize, Clone, PartialEq, Eq)]
-#[serde(rename_all_fields = "lowercase")]
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
 pub enum Sort {
 	Hostname,
 	Genres

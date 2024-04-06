@@ -2,11 +2,14 @@
 //!
 //! The submodule containing the wallpaper downloader and its helper functions.
 
+use apputils::{paint, Colors};
 use reqwest::blocking::{Client, Response};
 use reqwest::{Error, IntoUrl};
 use scraper::error::SelectorErrorKind;
 use scraper::{Html, Selector};
 use std::fmt;
+use std::thread;
+use std::time::Duration;
 use url::{ParseError, Url};
 
 mod alphacoders;
@@ -32,19 +35,22 @@ macro_rules! ok_box {
 /// [Downloader] from URL
 ///
 /// Returns the [Downloader] needed for the provided [Url].
-pub fn from_url(c: &Client, url: Url) -> DownloaderResult<Box<dyn Downloader>> {
+pub fn from_url(c: &Client, url: Url, d: u64) -> DownloaderResult<Box<dyn Downloader>> {
 	let host = url.host_str().unwrap_or_default();
 
+	paint!(Colors::GreenBold, "  Fetching ");
+	print!("{url}");
+
 	if host.ends_with(WALLHAVEN) {
-		ok_box!(Wallhaven::new(c, url))
+		ok_box!(Wallhaven::new(c, url, d))
 	} else if host.ends_with(WALLPAPER_ABYSS) {
-		ok_box!(WallpaperAbyss::new(c, url))
+		ok_box!(WallpaperAbyss::new(c, url, d))
 	} else if host.ends_with(ART_ABYSS) {
-		ok_box!(ArtAbyss::new(c, url))
+		ok_box!(ArtAbyss::new(c, url, d))
 	} else if host.ends_with(IMAGE_ABYSS) {
-		ok_box!(ImageAbyss::new(c, url))
+		ok_box!(ImageAbyss::new(c, url, d))
 	} else if host.ends_with(ARTSTATION) {
-		ok_box!(ArtStation::new(c, url))
+		ok_box!(ArtStation::new(c, url, d))
 	} else {
 		Err(DownloaderError::Other)
 	}
@@ -58,7 +64,7 @@ pub trait Downloader {
 	///
 	/// Creates a new Webscraper.
 	/// Requires a preconfigured [Client] as well as the post [Url].
-	fn new(client: &Client, url: Url) -> DownloaderResult<impl Downloader>
+	fn new(client: &Client, url: Url, delay: u64) -> DownloaderResult<impl Downloader>
 	where
 		Self: Sized;
 
@@ -175,7 +181,7 @@ impl Urls {
 	pub fn is_single(&self) -> bool {
 		match self {
 			Urls::Single(_) => true,
-			Urls::Multi(_) => false,
+			Urls::Multi(x) => x.len() < 2,
 		}
 	}
 }
@@ -281,8 +287,9 @@ impl From<ParseError> for DownloaderError {
 /// Quick download wrapper
 ///
 /// Shorthand for sending a GET request. If successful, the [Response]'s body can be used.
-pub fn quick_get(c: &Client, url: impl IntoUrl) -> DownloaderResult<Response> {
+pub fn quick_get(c: &Client, url: impl IntoUrl, delay: u64) -> DownloaderResult<Response> {
 	let resp = c.get(url).send()?.error_for_status()?;
+	thread::sleep(Duration::from_millis(delay));
 	Ok(resp)
 }
 

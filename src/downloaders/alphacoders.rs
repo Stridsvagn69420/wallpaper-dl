@@ -25,11 +25,12 @@ impl Alphacoders {
 	fn new(
 		client: &Client,
 		url: Url,
+		delay: u64,
 		id: String,
 		service_css: &str,
 		title_css: &str	
 	) -> DownloaderResult<Self> {
-		let html = quick_get(client, url)?.text()?;
+		let html = quick_get(client, url, delay)?.text()?;
 		let download_css = format!("a#{}_{}_download_button", service_css, id);
 		let download = SelectAttr::parse(&download_css, "href")?;
 		Ok(Self {
@@ -68,12 +69,12 @@ impl Alphacoders {
 pub struct WallpaperAbyss(Alphacoders);
 
 impl Downloader for WallpaperAbyss {
-	fn new(client: &Client, url: Url) -> DownloaderResult<Self> {
+	fn new(client: &Client, url: Url, delay: u64) -> DownloaderResult<Self> {
 		let id = match url.query() {
 			Some(x) => x.replace("i=", ""),
 			None => return Err(DownloaderError::ParseError("URL Query did not match pattern".to_string()))
 		};
-		let inner = Alphacoders::new(client, url, id, "wallpaper", "img#main-content")?;
+		let inner = Alphacoders::new(client, url, delay, id, "wallpaper", "img#main-content")?;
 		Ok(Self(inner))
 	}
 
@@ -97,9 +98,9 @@ impl Downloader for WallpaperAbyss {
 pub struct ArtAbyss(Alphacoders);
 
 impl Downloader for ArtAbyss {
-	fn new(client: &Client, url: Url) -> DownloaderResult<Self> {
+	fn new(client: &Client, url: Url, delay: u64) -> DownloaderResult<Self> {
 		let id = url.path().replace("/arts/view/", "");
-		let inner = Alphacoders::new(client, url, id, "art", "img.img-responsive")?;
+		let inner = Alphacoders::new(client, url, delay, id, "art", "img.img-responsive")?;
 		Ok(Self(inner))
 	}
 
@@ -123,9 +124,9 @@ impl Downloader for ArtAbyss {
 pub struct ImageAbyss(Alphacoders);
 
 impl Downloader for ImageAbyss {
-	fn new(client: &Client, url: Url) -> DownloaderResult<Self> {
+	fn new(client: &Client, url: Url, delay: u64) -> DownloaderResult<Self> {
 		let id = url.path().replace("/pictures/view/", "");
-		let inner = Alphacoders::new(client, url, id, "picture", "img.img-responsive")?;
+		let inner = Alphacoders::new(client, url, delay, id, "picture", "img.img-responsive")?;
 		Ok(Self(inner))
 	}
 

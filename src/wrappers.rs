@@ -3,7 +3,6 @@ use crate::downloaders::{quick_get, DownloaderError, DownloaderResult, Wallpaper
 use apputils::{paint, paintln, Colors};
 use blake3::hash;
 use mailparse::parse_content_disposition;
-use mime_guess::get_mime_extensions_str;
 use reqwest::blocking::Client;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_DISPOSITION, CONTENT_TYPE};
 use std::fmt::Display;
@@ -21,16 +20,19 @@ impl Filedown {
 	/// Save Wallpaper file
 	///
 	/// Wrapper around saving the downloaded wallpaper to disk.
+	/// Returns the absolute path of the file.
 	///
 	/// Currently, it does it in an unbuffered manner due to [download_file](Filedown::download_file)'s restrictions.
 	pub fn save_file(
-		dir: impl AsRef<Path>,
+		dir: PathBuf,
 		file: impl AsRef<Path>,
 		data: &[u8],
-	) -> io::Result<()> {
-		fs::create_dir_all(dir)?;
-		let mut file = fs::File::create(file)?;
-		file.write_all(data)
+	) -> io::Result<PathBuf> {
+		let abspath = dir.join(file);
+		fs::create_dir_all(&dir)?;
+		let mut file = fs::File::create(&abspath)?;
+		file.write_all(data)?;
+		Ok(abspath)
 	}
 
 	/// Download Wallpaper file
@@ -42,11 +44,12 @@ impl Filedown {
 	/// A future release of **wallpaper-dl** will use the asynchronous API to increase performance.
 	pub fn download_file(
 		client: &Client,
+		delay: u64,
 		wallmeta: &WallpaperMeta,
 		wallfile: Url,
 	) -> DownloaderResult<(Vec<u8>, String, String)> {
 		// Download file
-		let mut resp = quick_get(client, wallfile)?;
+		let mut resp = quick_get(client, wallfile, delay)?;
 
 		// Filename canidates
 		let title = wallmeta.title.as_ref();
@@ -59,7 +62,7 @@ impl Filedown {
 
 		// Parse Name
 		let name = file_name(title, &head, &path).unwrap_or_else(|| hash(&data).to_string());
-		let ext = file_ext(&head).unwrap_or(&"bin");
+		let ext = file_ext(&head).unwrap_or("bin");
 		Ok((data, name, ext.to_string()))
 	}
 
@@ -76,10 +79,11 @@ impl Filedown {
 
 	/// Resolve parent path
 	/// 
-	/// Automatically creates the path with the given sorting method.
+	/// Automatically creates the *relative* path with the given sorting method.
+	/// This still needs to be joined with the root.
 	pub fn resolve_path(conf: &Config, host: &str, tags: &[String]) -> PathBuf {
 		let parent = most_matching_genre(conf, tags).unwrap_or_else(|| host.to_string());
-		conf.download.path.join(parent)
+		Path::new(&parent).to_path_buf()
 	}
 }
 
@@ -116,10 +120,19 @@ fn match_genre(genre: &[String], image: &[String]) -> usize {
 /// Get File Extension
 ///
 /// Checks the `Content-Type` header for the required file extension.
-fn file_ext(heads: &HeaderMap) -> Option<&&str> {
+fn file_ext(heads: &HeaderMap) -> Option<&str> {
 	let head = heads.get(CONTENT_TYPE)?;
-	let hv = get_mime_extensions_str(head.to_str().ok()?)?;
-	hv.first()
+	let ext = match head.to_str().ok()? {
+		"image/bmp" => "bmp",
+		"image/apng" => "apng",
+		"image/png" => "png",
+		"image/jpeg" => "jpg",
+		"image/gif" => "gif",
+		"image/avif" => "avif",
+		"image/webp" => "webp",
+		_ => "bin"
+	};
+	Some(ext)
 }
 
 /// Find suitable file name
@@ -220,7 +233,7 @@ impl DownErr {
 	pub fn init_req<T>(err: DownloaderError, host: &str) -> Option<T> {
 		match err {
 			DownloaderError::Other => paintln!(Colors::YellowBold, "{host} is not supported!"),
-			_ => paintln!(Colors::Red, "{err}"), // TODO: Improve
+			_ => paintln!(Colors::RedBold, " FAILED {}{err}", Colors::Red)
 		}
 		None
 	}

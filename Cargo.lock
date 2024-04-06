@@ -1532,7 +1532,6 @@ dependencies = [
  "apputils",
  "blake3",
  "mailparse",
- "mime_guess",
  "reqwest",
  "scraper",
  "serde",
