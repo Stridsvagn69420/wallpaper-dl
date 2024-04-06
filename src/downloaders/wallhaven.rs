@@ -1,6 +1,5 @@
 use super::{quick_get, Downloader, DownloaderError, DownloaderResult, Urls};
-use async_trait::async_trait;
-use reqwest::Client;
+use reqwest::blocking::Client;
 use serde::Deserialize;
 use url::Url;
 
@@ -38,12 +37,11 @@ pub struct Wallhaven {
 	tags: Vec<Tag>,
 }
 
-#[async_trait]
 impl Downloader for Wallhaven {
-	async fn new(client: &Client, mut url: Url) -> DownloaderResult<Self> {
+	fn new(client: &Client, mut url: Url) -> DownloaderResult<Self> {
 		let api_path = format!("/api/v1{}", url.path());
 		url.set_path(&api_path);
-		let api_res = quick_get(client, url).await?.json::<WallhavenApi>().await?;
+		let api_res = quick_get(client, url)?.json::<WallhavenApi>()?;
 		Ok(api_res.data)
 	}
 

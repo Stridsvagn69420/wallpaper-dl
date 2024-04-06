@@ -8,7 +8,7 @@ use std::default::Default;
 use std::error::Error;
 use std::io;
 use std::path::PathBuf;
-use toml;
+use toml::to_string_pretty;
 
 /// Map to io-Error
 ///
@@ -50,17 +50,17 @@ pub fn load_db() -> io::Result<WallpaperDb> {
 ///
 /// Saves the modified database to `wallpapers.toml`.
 pub fn save_db(db: &WallpaperDb) -> io::Result<()> {
-	let dbtxt = toml::to_string_pretty(db).map_err(to_io_err)?;
+	let dbtxt = to_string_pretty(db).map_err(to_io_err)?;
 	Appdata::save(APP_NAME, WALLPAPERS_FILE, dbtxt)
 }
 
 /// Config super struct
 ///
 /// The struct that combines all the sub config structs.
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Deserialize, Serialize, Default, Clone)]
 pub struct Config {
-	/// Filesystem config
-	pub filesystem: Filesystem,
+	/// Download config
+	pub download: Download,
 
 	/// Genre Map
 	///
@@ -96,7 +96,7 @@ impl Config {
 /// Wallpaper config
 ///
 /// The Wallpaper sub-struct.
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct Wallpaper {
 	/// Current Wallpaper Hash
 	///
@@ -104,31 +104,30 @@ pub struct Wallpaper {
 	pub current: Hash,
 }
 
-/// Filesystem settings
+/// Download settings
 ///
-/// Sub-struct for configuring filesystem related settings.
-#[derive(Deserialize, Serialize)]
+/// Sub-struct for configuring donwloading related settings.
+#[derive(Deserialize, Serialize, Clone)]
 #[serde(default)]
-pub struct Filesystem {
+pub struct Download {
 	pub path: PathBuf,
 	pub sort: Sort,
 }
 
-impl Default for Filesystem {
+impl Default for Download {
 	fn default() -> Self {
 		Self {
 			// 99% of the time $HOME is set, so unless you fucked up basic Linux commands, this won't panic.
 			path: home_dir().join("Pictures"),
-			sort: Sort::Hostname,
+			sort: Sort::Hostname
 		}
 	}
 }
 
 /// Sorting Methods
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all_fields = "lowercase")]
 pub enum Sort {
 	Hostname,
-	Genres,
-	None,
+	Genres
 }

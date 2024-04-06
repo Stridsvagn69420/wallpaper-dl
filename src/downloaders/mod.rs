@@ -2,8 +2,8 @@
 //!
 //! The submodule containing the wallpaper downloader and its helper functions.
 
-use async_trait::async_trait;
-use reqwest::{Client, Error, IntoUrl, Response};
+use reqwest::blocking::{Client, Response};
+use reqwest::{Error, IntoUrl};
 use scraper::error::SelectorErrorKind;
 use scraper::{Html, Selector};
 use std::fmt;
@@ -25,14 +25,14 @@ const ARTSTATION: &str = "artstation.com";
 
 macro_rules! ok_box {
 	($dl:expr) => {
-		Ok(Box::new($dl.await?))
+		Ok(Box::new($dl?))
 	};
 }
 
-/// From URL
+/// [Downloader] from URL
 ///
 /// Returns the [Downloader] needed for the provided [Url].
-pub async fn from_url(c: &Client, url: Url) -> DownloaderResult<Box<dyn Downloader>> {
+pub fn from_url(c: &Client, url: Url) -> DownloaderResult<Box<dyn Downloader>> {
 	let host = url.host_str().unwrap_or_default();
 
 	if host.ends_with(WALLHAVEN) {
@@ -53,13 +53,12 @@ pub async fn from_url(c: &Client, url: Url) -> DownloaderResult<Box<dyn Download
 /// Webscraper Downloader Trait
 ///
 /// Trait for Wallpaper downloaders that rely on webscraping.
-#[async_trait]
 pub trait Downloader {
 	/// New Wallpaper Downloader
 	///
 	/// Creates a new Webscraper.
 	/// Requires a preconfigured [Client] as well as the post [Url].
-	async fn new(client: &Client, url: Url) -> DownloaderResult<impl Downloader>
+	fn new(client: &Client, url: Url) -> DownloaderResult<impl Downloader>
 	where
 		Self: Sized;
 
@@ -87,7 +86,7 @@ pub trait Downloader {
 	///
 	/// Returns a collection of tags related to the image.
 	/// If a website does not use tags, it should attempt to parse useful data out of other elements, e.g. the title or URL.
-	/// A [Other error](DownloaderError::Other) means it could not find any tags.
+	/// A [Other error](DownloaderError::Other) means the website in general does not use tags and there are no alternatives.
 	///
 	/// The Downloaders themselves don't have to remove duplicates,
 	/// but the idea is that the main thread will sort and [dedup](Vec::dedup) anyway,
@@ -95,12 +94,74 @@ pub trait Downloader {
 	fn image_tags(&self) -> DownloaderResult<Vec<String>>;
 }
 
+/// Wallpaper Metadata
+/// 
+/// Bundled output of a [Downloader]
+pub struct WallpaperMeta {
+	/// Post ID
+	/// 
+	/// A unique identifier for the Wallpaper/Post.
+	pub id: String,
+
+	/// Wallpaper Title
+	/// 
+	/// The title of the Wallpaper, if it exists.
+	pub title: Option<String>,
+
+	/// Image Tags
+	/// 
+	/// The tags used in the original post. If converted from a [Downloader], these are sorted and deduped.
+	pub tags: Vec<String>,
+
+	/// Wallpaper URL
+	/// 
+	/// The URL (or multiple URLs) of a Wallpaper.
+	pub images: Urls
+}
+
+impl TryFrom<Box<dyn Downloader>> for WallpaperMeta {
+	type Error = DownloaderError;
+
+	fn try_from(value: Box<dyn Downloader>) -> Result<Self, Self::Error> {
+		// Extract tags and sort them
+		let tags = match value.image_tags() {
+			Ok(mut x) => {
+				x.sort_unstable();
+				x.dedup();
+				x
+			},
+			Err(err) => match err {
+				DownloaderError::Other => vec![],
+				_ => return Err(err)
+			}
+		};
+
+		// Extract title
+		let title = match value.image_title() {
+			Ok(x) => Some(x),
+			Err(err) => match err {
+				DownloaderError::Other => None,
+				_ => return Err(err)
+			}
+		};
+
+		// Bundle information
+		let meta = Self {
+			tags,
+			title,
+			id: value.image_id().to_owned(),
+			images: value.image_url()?
+		};
+		Ok(meta)
+	}
+}
+
 /// URL Quantity
 ///
 /// Since some websites have multiple images per post,
 /// this enum carries either a single [Url] or a [Vec] of it,
 /// so that the main thread does not have to deal with uneccesary Array operations.
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum Urls {
 	/// A single URL
 	Single(Url),
@@ -122,6 +183,24 @@ impl Urls {
 impl From<Url> for Urls {
 	fn from(value: Url) -> Self {
 		Urls::Single(value)
+	}
+}
+
+impl From<Urls> for Vec<Url> {
+	fn from(value: Urls) -> Self {
+		match value {
+			Urls::Single(x) => vec![x],
+			Urls::Multi(y) => y,
+		}
+	}
+}
+
+impl From<&Urls> for Vec<Url> {
+	fn from(value: &Urls) -> Self {
+		match value {
+			Urls::Single(x) => vec![x.clone()],
+			Urls::Multi(y) => y.to_vec(),
+		}
 	}
 }
 
@@ -157,7 +236,7 @@ pub enum DownloaderError {
 	///
 	/// More or less a dummy error.
 	/// Used to map an [Option] to this type.
-	Other,
+	Other
 }
 
 impl fmt::Display for DownloaderError {
@@ -202,8 +281,8 @@ impl From<ParseError> for DownloaderError {
 /// Quick download wrapper
 ///
 /// Shorthand for sending a GET request. If successful, the [Response]'s body can be used.
-async fn quick_get(c: &Client, url: impl IntoUrl) -> DownloaderResult<Response> {
-	let resp = c.get(url).send().await?.error_for_status()?;
+pub fn quick_get(c: &Client, url: impl IntoUrl) -> DownloaderResult<Response> {
+	let resp = c.get(url).send()?.error_for_status()?;
 	Ok(resp)
 }
 

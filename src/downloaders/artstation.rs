@@ -1,6 +1,5 @@
 use super::{quick_get, Downloader, DownloaderResult, Urls};
-use async_trait::async_trait;
-use reqwest::Client;
+use reqwest::blocking::Client;
 use serde::Deserialize;
 use url::Url;
 
@@ -15,13 +14,12 @@ pub struct ArtStation {
 	tags: Vec<String>
 }
 
-#[async_trait]
 impl Downloader for ArtStation {
-	async fn new(client: &Client, mut url: Url) -> DownloaderResult<Self> {
+	fn new(client: &Client, mut url: Url) -> DownloaderResult<Self> {
 		let id_path = url.path().replace("/artwork/", "/projects/");
 		let api_path = format!("{}.json", id_path);
 		url.set_path(&api_path);
-		Ok(quick_get(client, url).await?.json::<Self>().await?)
+		Ok(quick_get(client, url)?.json::<Self>()?)
 	}
 
 	fn image_id(&self) -> &str {
