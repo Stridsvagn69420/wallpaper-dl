@@ -10,12 +10,6 @@ use std::process::ExitCode;
 pub const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 const APP_DESC: &str = env!("CARGO_PKG_DESCRIPTION");
-const APP_REPO: &str = env!("CARGO_PKG_REPOSITORY");
-const APP_LICENSE: &str = env!("CARGO_PKG_LICENSE");
-
-// build.rs Metadata
-const RUST_TARGET: &str = env!("TARGET");
-const RUST_VERSION: &str = env!("RUST_VERSION");
 
 // Config Constants
 pub const CONFIG_FILE: &str = "config.toml";
@@ -32,10 +26,40 @@ impl Info {
 	}
 
 	pub fn help(failed: bool) -> ExitCode {
-		let code = if failed { ExitCode::FAILURE } else { ExitCode::SUCCESS };
+		// ---- USAGE ----
+		paintln!(Colors::RedBold, "Usage:");
+		paint!(Colors::Red, "  {} <URL[]> ", APP_NAME);
+		println!("{}", APP_DESC);
+		
 
-		eprintln!("Work in progess...");
+		// ---- SUBCOMMANDS ----
+		println!();
+		paintln!(Colors::MagentaBold, "Subcommands:");
 
-		code
+		// wallpaper-dl current
+		paint!(Colors::Magenta, "  current        ");
+		println!("Display path of current wallpaper");
+
+		// wallpaper-dl current <URL>
+		paint!(Colors::Magenta, "  current <URL>  ");
+		println!("Set current wallpaper by URL and download if it's missing");
+
+		// wallpaper-dl current <Path>
+		paint!(Colors::Magenta, "  current <Path> ");
+		println!("Set current wallpaper by filepath relative to wallpaper folder root");
+
+		// ---- FLAGS ----
+		println!();
+		paintln!(Colors::CyanBold, "Flags:");
+
+		// wallpaper-dl --help
+		paint!(Colors::Cyan, "  -h, --help     ");
+		println!("Print this help message");
+
+		// wallpaper-dl --version
+		paint!(Colors::Cyan, "  -V, --version  ");
+		println!("Print app version");
+
+		ExitCode::from(Into::<u8>::into(failed))
 	}
 }

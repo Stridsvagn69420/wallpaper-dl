@@ -119,7 +119,7 @@ impl Default for Download {
 	fn default() -> Self {
 		Self {
 			// 99% of the time $HOME is set, so unless you fucked up basic Linux commands, this won't panic.
-			path: home_dir().join("Pictures"),
+			path: home_dir().join("Pictures").join("Wallpapers"),
 			sort: Sort::Hostname,
 			delay: 450
 		}

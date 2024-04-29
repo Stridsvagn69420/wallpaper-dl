@@ -1,5 +1,5 @@
 use apputils::{paint, paintln, Colors};
-use blake3::{hash, Hash};
+use blake3::hash;
 use reqwest::blocking::Client;
 use std::env;
 use std::io::ErrorKind;
@@ -19,6 +19,8 @@ use meta::{Info, USER_AGENT};
 
 mod wrappers;
 use wrappers::{MainErr, DownErr, Filedown};
+
+use crate::downloaders::DownloaderError;
 
 /// Main Thread
 /// 
@@ -81,7 +83,7 @@ fn current(arg: Option<String>) -> ExitCode {
 		let Some(wdb) = db.get(&wcfg.current) else { return MainErr::db_not_found(Colors::Yellow, "Wallpaper") };
 
 		// Just print
-		println!("{}", wdb.file.as_path().to_string_lossy());
+		println!("{}", wallcfg.download.path.join(&wdb.file).display());
 		return ExitCode::SUCCESS;
 	};
 
@@ -93,9 +95,6 @@ fn current(arg: Option<String>) -> ExitCode {
 			return download(wallcfg, db, Urls::Single(url));
 		};
 		entry.0.to_owned()
-	} else if Hash::from_str(&param).is_ok() && db.get(&param).is_some() {
-		// Check if Hash exists
-		param
 	} else {
 		// Find Hash Key by File property
 		let path = PathBuf::from(&param);
@@ -108,8 +107,8 @@ fn current(arg: Option<String>) -> ExitCode {
 	// Attempt to save config
 	wallcfg.wallpaper = Some(Wallpaper { current: newhash });
 	match wallcfg.save() {
-		Ok(_) => ExitCode::SUCCESS,
-		Err(err) => MainErr::cfg_save(Colors::RedBold, Colors::Red, err)
+		Ok(_) => MainErr::wall_set(),
+		Err(_) => DownErr::finish(false, true)
 	}
 }
 
@@ -126,7 +125,8 @@ fn download(mut config: Config, mut database: WallpaperDb, list: Urls) -> ExitCo
 	// Parse input strings to URLs
 	let mut allurls: Vec<Url> = list.into();
 	if allurls.is_empty() {
-		return DownErr::valid_urls();
+		paintln!(Colors::RedBold, "No valid URLs provided!");
+		return ExitCode::FAILURE;
 	}
 	allurls.sort_unstable();
 	allurls.dedup();
@@ -142,12 +142,14 @@ fn download(mut config: Config, mut database: WallpaperDb, list: Urls) -> ExitCo
 		.filter(|x| already_exists.binary_search(x).is_err())
 		.collect();
 	if urls.is_empty() {
-		return DownErr::new_urls();
+		paintln!(Colors::Cyan, "No new wallpapers to download!");
+		return ExitCode::SUCCESS;
 	}
 
 	// Create HTTP Client
 	let Ok(client) = Client::builder().user_agent(USER_AGENT).build() else {
-		return DownErr::tls_resolve();
+		paintln!(Colors::RedBold, "Failed to initialize HTTP-Client!");
+		return ExitCode::FAILURE;
 	};
 
 	// 1. Fetch metadata of all provided wallpapers
@@ -157,7 +159,11 @@ fn download(mut config: Config, mut database: WallpaperDb, list: Urls) -> ExitCo
 		let meta = match downloaders::from_url(&client, link.clone(), config.download.delay).and_then(TryInto::<WallpaperMeta>::try_into) {
 			Ok(x) => x,
 			Err(err) => {
-				return DownErr::init_req(err, &host);
+				match err {
+					DownloaderError::Other => paintln!(Colors::YellowBold, "{host} is not supported!"),
+					_ => paintln!(Colors::RedBold, " FAILED {}{err}", Colors::Red)
+				}
+				return None;
 			}
 		};
 		println!(); // downloaders::from_url does not create a newline

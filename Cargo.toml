@@ -4,13 +4,13 @@ version = "0.1.0"
 edition = "2021"
 license = "EUPL-1.2"
 readme = "README.md"
-build = "build.rs"
 description = "Wallpaper downloader for various websites"
 repository = "https://github.com/Stridsvagn69420/wallpaper-dl.git"
 homepage = "https://github.com/Stridsvagn69420/wallpaper-dl"
 keywords = ["wallpaper", "downloader"]
 categories = ["command-line-utilities", "web-programming::http-client"]
-publish = false # temporary safeguard 
+authors = ["Stridsvagn69420"]
+publish = true 
 
 [dependencies]
 apputils = "0.1"

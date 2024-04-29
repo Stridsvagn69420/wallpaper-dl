@@ -1,5 +1,5 @@
 use crate::config::{Config, Sort};
-use crate::downloaders::{quick_get, DownloaderError, DownloaderResult, WallpaperMeta};
+use crate::downloaders::{quick_get, DownloaderResult, WallpaperMeta};
 use apputils::{paint, paintln, Colors};
 use blake3::hash;
 use mailparse::parse_content_disposition;
@@ -30,6 +30,7 @@ impl Filedown {
 	) -> io::Result<PathBuf> {
 		let abspath = dir.join(file);
 		fs::create_dir_all(&dir)?;
+
 		let mut file = fs::File::create(&abspath)?;
 		file.write_all(data)?;
 		Ok(abspath)
@@ -61,8 +62,8 @@ impl Filedown {
 		resp.copy_to(&mut data)?;
 
 		// Parse Name
-		let name = file_name(title, &head, &path).unwrap_or_else(|| hash(&data).to_string());
-		let ext = file_ext(&head).unwrap_or("bin");
+		let name = Filedown::file_name(title, &head, &path).unwrap_or_else(|| hash(&data).to_string());
+		let ext = Filedown::file_ext(&head).unwrap_or("bin");
 		Ok((data, name, ext.to_string()))
 	}
 
@@ -82,87 +83,87 @@ impl Filedown {
 	/// Automatically creates the *relative* path with the given sorting method.
 	/// This still needs to be joined with the root.
 	pub fn resolve_path(conf: &Config, host: &str, tags: &[String]) -> PathBuf {
-		let parent = most_matching_genre(conf, tags).unwrap_or_else(|| host.to_string());
+		let parent = Filedown::most_matching_genre(conf, tags).unwrap_or_else(|| host.to_string());
 		Path::new(&parent).to_path_buf()
 	}
-}
 
-fn most_matching_genre(conf: &Config, walltags: &[String]) -> Option<String> {
-	// Iteratre over configured genres
-	if conf.download.sort != Sort::Genres {
-		return None;
-	}
-	let mut genre_iter = conf.genres.clone()?.into_iter();
-
-	// Initial values
-	let first = genre_iter.next()?;
-	let mut bestgenre = first.0;
-	let mut bestmatch = match_genre(&first.1, walltags);
-
-	// Find most suitable tag
-	for (genre, tags) in genre_iter {
-		let matchness = match_genre(&tags, walltags);
-		if matchness > bestmatch {
-			bestgenre = genre;
-			bestmatch = matchness;
+	fn most_matching_genre(conf: &Config, walltags: &[String]) -> Option<String> {
+		// Iteratre over configured genres
+		if conf.download.sort != Sort::Genres {
+			return None;
 		}
+		let mut genre_iter = conf.genres.clone()?.into_iter();
+	
+		// Initial values
+		let first = genre_iter.next()?;
+		let mut bestgenre = first.0;
+		let mut bestmatch = Filedown::match_genre(&first.1, walltags);
+	
+		// Find most suitable tag
+		for (genre, tags) in genre_iter {
+			let matchness = Filedown::match_genre(&tags, walltags);
+			if matchness > bestmatch {
+				bestgenre = genre;
+				bestmatch = matchness;
+			}
+		}
+		Some(bestgenre)
 	}
-	Some(bestgenre)
-}
-
-/// Match genre O(n^2)
-/// 
-/// Matches a genre-slice with an image tag-slice. Note that the `image` slice must be sorted!
-fn match_genre(genre: &[String], image: &[String]) -> usize {
-	genre.iter().filter(|x| image.binary_search(x).is_ok()).count()
-}
-
-/// Get File Extension
-///
-/// Checks the `Content-Type` header for the required file extension.
-fn file_ext(heads: &HeaderMap) -> Option<&str> {
-	let head = heads.get(CONTENT_TYPE)?;
-	let ext = match head.to_str().ok()? {
-		"image/bmp" => "bmp",
-		"image/apng" => "apng",
-		"image/png" => "png",
-		"image/jpeg" => "jpg",
-		"image/gif" => "gif",
-		"image/avif" => "avif",
-		"image/webp" => "webp",
-		_ => "bin"
-	};
-	Some(ext)
-}
-
-/// Find suitable file name
-///
-/// Attempts to find a suitable file name in this order:
-/// 1. The API-provided title
-/// 2. The `filename` set in Content-Disposition
-/// 3. The [file_stem](Path::file_stem) of the URL Path
-///
-/// A [None] means that absolutely no title could be found.
-fn file_name(title: Option<&String>, condisp: &HeaderMap, path: &str) -> Option<String> {
-	title
-		.map(|x| x.to_owned())
-		.or_else(|| filename_content_disposition(condisp.get(CONTENT_DISPOSITION)))
-		.or_else(|| filename_url_path(path))
-}
-
-/// Get filename from Content-Disposition
-fn filename_content_disposition(condisp: Option<&HeaderValue>) -> Option<String> {
-	let header = condisp?.to_str().ok()?;
-	parse_content_disposition(header)
-		.params
-		.get("filename")
-		.cloned()
-}
-
-/// Get filename from URL-Path
-fn filename_url_path(path: &str) -> Option<String> {
-	let filename = Path::new(path).file_stem().and_then(|x| x.to_str())?;
-	Some(filename.to_string())
+	
+	/// Match genre O(n^2)
+	/// 
+	/// Matches a genre-slice with an image tag-slice. Note that the `image` slice must be sorted!
+	fn match_genre(genre: &[String], image: &[String]) -> usize {
+		genre.iter().filter(|x| image.binary_search(x).is_ok()).count()
+	}
+	
+	/// Get File Extension
+	///
+	/// Checks the `Content-Type` header for the required file extension.
+	fn file_ext(heads: &HeaderMap) -> Option<&str> {
+		let head = heads.get(CONTENT_TYPE)?;
+		let ext = match head.to_str().ok()? {
+			"image/bmp" => "bmp",
+			"image/apng" => "apng",
+			"image/png" => "png",
+			"image/jpeg" => "jpg",
+			"image/gif" => "gif",
+			"image/avif" => "avif",
+			"image/webp" => "webp",
+			_ => "bin"
+		};
+		Some(ext)
+	}
+	
+	/// Find suitable file name
+	///
+	/// Attempts to find a suitable file name in this order:
+	/// 1. The API-provided title
+	/// 2. The `filename` set in Content-Disposition
+	/// 3. The [file_stem](Path::file_stem) of the URL Path
+	///
+	/// A [None] means that absolutely no title could be found.
+	fn file_name(title: Option<&String>, condisp: &HeaderMap, path: &str) -> Option<String> {
+		title
+			.map(|x| x.to_owned())
+			.or_else(|| Filedown::filename_content_disposition(condisp.get(CONTENT_DISPOSITION)))
+			.or_else(|| Filedown::filename_url_path(path))
+	}
+	
+	/// Get filename from Content-Disposition
+	fn filename_content_disposition(condisp: Option<&HeaderValue>) -> Option<String> {
+		let header = condisp?.to_str().ok()?;
+		parse_content_disposition(header)
+			.params
+			.get("filename")
+			.cloned()
+	}
+	
+	/// Get filename from URL-Path
+	fn filename_url_path(path: &str) -> Option<String> {
+		let filename = Path::new(path).file_stem().and_then(|x| x.to_str())?;
+		Some(filename.to_string())
+	}
 }
 
 /// Main Thread Errors
@@ -202,14 +203,15 @@ impl MainErr {
 		ExitCode::FAILURE
 	}
 
-	pub fn cfg_save(ctext: Colors, cerr: Colors, err: io::Error) -> ExitCode {
-		key_value(ctext, cerr, "Failed to save configuration", err)
-	}
-
 	pub fn cfg_wallpaper() -> ExitCode {
 		paintln!(Colors::Yellow, "No wallpaper was set!");
 		ExitCode::FAILURE
 	}
+
+	pub fn wall_set() -> ExitCode {
+		paintln!(Colors::Green, "Wallpaper successfully updated");
+		ExitCode::SUCCESS
+	}	
 }
 
 /// Download errors
@@ -217,38 +219,10 @@ impl MainErr {
 /// Error messages for the main download phase.
 pub struct DownErr;
 impl DownErr {
-	/// No (valid) URLs were found
-	pub fn valid_urls() -> ExitCode {
-		paintln!(Colors::RedBold, "No valid URLs provided!");
-		ExitCode::FAILURE
-	}
-
-	/// Input already listed in database
-	pub fn new_urls() -> ExitCode {
-		paintln!(Colors::Cyan, "No new wallpapers to download!");
-		ExitCode::SUCCESS
-	}
-
-	/// Initial request failed
-	pub fn init_req<T>(err: DownloaderError, host: &str) -> Option<T> {
-		match err {
-			DownloaderError::Other => paintln!(Colors::YellowBold, "{host} is not supported!"),
-			_ => paintln!(Colors::RedBold, " FAILED {}{err}", Colors::Red)
-		}
-		None
-	}
-
-	/// Could not create HTTP-Client
-	pub fn tls_resolve() -> ExitCode {
-		key_value(
-			Colors::Red,
-			Colors::RedBold,
-			"Failed to initialize reqwest client",
-			"DNS resolver settings could not be parsed",
-		)
-	}
-
 	/// Exitcode evaluator
+	/// 
+	/// The **first** parameter should be true for **database** write failures.  
+	/// The **second** parameter should be true for **config** write failures.
 	pub fn finish(config: bool, database: bool) -> ExitCode {
 		if database {
 			paint!(Colors::RedBold, "CRITICAL! ");
