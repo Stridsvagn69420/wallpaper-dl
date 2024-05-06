@@ -20,7 +20,7 @@ serde = { version = "1.0", features = ["derive"] }
 reqwest = { version = "0.12", features = ["blocking", "rustls-tls-native-roots", "deflate", "gzip", "brotli", "json", "charset", "multipart"], default-features = false }
 scraper = "0.19"
 blake3 = { version = "1.5", features = ["serde", "neon"] }
-mailparse = "0.14"
+mailparse = "0.15"
 
 [profile.release]
 strip = true
