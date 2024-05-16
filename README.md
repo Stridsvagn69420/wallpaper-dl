@@ -17,25 +17,8 @@ Wallpaper downloader for various websites
 ## Usage
 Downloading wallpapers:
 ```bash
-wallpaper-dl <URLs>
-```
-
-Setting the current wallpaper:
-```bash
-wallpaper-dl current <URL/Path>
-```
-
-Getting the current wallpaper path:
-```bash
-wallpaper-dl current
+wallpaper-dl <URL[]>
 ```
 
 ## Contributing
 Want to add a feature, enhance website support or report a bug? Just open a new issue on [GitHub][github]!
-
-#### Ideas for version 0.2.0
-It's a hobby project of mine, so I can't just work on it 24/7, but here are some things that I want to implement:
-- Removing missing files from database
-- Tokio multithreaded and async/await
-- Buffered IO for downloading (requires async due to streams)
-- [indicatif](https://github.com/console-rs/indicatif) for cleaner status output

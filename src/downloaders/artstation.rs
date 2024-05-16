@@ -10,8 +10,7 @@ use url::Url;
 pub struct ArtStation {
 	hash_id: String,
 	title: String,
-	assets: Vec<Asset>,
-	tags: Vec<String>
+	assets: Vec<Asset>
 }
 
 impl Downloader for ArtStation {
@@ -41,9 +40,6 @@ impl Downloader for ArtStation {
 	}
 	fn image_title(&self) -> DownloaderResult<String> {
 		Ok(self.title.clone())
-	}
-	fn image_tags(&self) -> DownloaderResult<Vec<String>> {
-		Ok(self.tags.clone())
 	}
 }
 /// ArtStation Post Asset

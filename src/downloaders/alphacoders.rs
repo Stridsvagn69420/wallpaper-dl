@@ -1,6 +1,6 @@
 use super::{quick_get, Downloader, DownloaderError, DownloaderResult, ScraperWrapper, SelectAttr, Urls};
 use reqwest::blocking::Client;
-use scraper::{Html, Selector};
+use scraper::Html;
 use url::Url;
 
 /// Alphacoders Core
@@ -51,16 +51,6 @@ impl Alphacoders {
 	fn image_title(&self) -> DownloaderResult<String> {
 		ScraperWrapper::image_title(&self.html, &self.title)
 	}
-
-	/// Image Tags wrapper
-	/// 
-	/// Image tags are the inner text of A-Tags inside a Div with class "well".
-	fn image_tags(&self) -> DownloaderResult<Vec<String>> {
-		Ok(self.html.select(&Selector::parse("div.well a")?)
-			.flat_map(|x| x.text())
-			.map(|y| y.trim().to_string())
-			.collect())
-	}
 }
 
 /// Wallpaper Abyss
@@ -87,9 +77,6 @@ impl Downloader for WallpaperAbyss {
 	fn image_title(&self) -> DownloaderResult<String> {
 		self.0.image_title()
 	}
-	fn image_tags(&self) -> DownloaderResult<Vec<String>> {
-		self.0.image_tags()
-	}
 }
 
 /// Art Abyss
@@ -113,9 +100,6 @@ impl Downloader for ArtAbyss {
 	fn image_title(&self) -> DownloaderResult<String> {
 		self.0.image_title()
 	}
-	fn image_tags(&self) -> DownloaderResult<Vec<String>> {
-		self.0.image_tags()
-	}
 }
 
 /// Image Abyss
@@ -138,8 +122,5 @@ impl Downloader for ImageAbyss {
 	}
 	fn image_title(&self) -> DownloaderResult<String> {
 		self.0.image_title()
-	}
-	fn image_tags(&self) -> DownloaderResult<Vec<String>> {
-		self.0.image_tags()
 	}
 }

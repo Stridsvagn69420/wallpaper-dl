@@ -31,10 +31,7 @@ struct WallhavenApi {
 #[derive(Deserialize)]
 pub struct Wallhaven {
 	path: String,
-	id: String,
-	category: String,
-	purity: String,
-	tags: Vec<Tag>,
+	id: String
 }
 
 impl Downloader for Wallhaven {
@@ -54,14 +51,5 @@ impl Downloader for Wallhaven {
 	}
 	fn image_title(&self) -> DownloaderResult<String> {
 		Err(DownloaderError::Other)
-	}
-	fn image_tags(&self) -> DownloaderResult<Vec<String>> {
-		let mut tags = vec![self.category.clone(), self.purity.clone()];
-		self.tags.clone()
-			.into_iter()
-			.flat_map(Into::<Vec<String>>::into)
-			.filter(|x| !x.is_empty())
-			.for_each(|y| tags.push(y));
-		Ok(tags)
 	}
 }

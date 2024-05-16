@@ -87,17 +87,6 @@ pub trait Downloader {
 	/// in order to let the main thread know that it should look for title hints when downloading the data
 	/// or hash it and use that as a title.
 	fn image_title(&self) -> DownloaderResult<String>;
-
-	/// Image Tags
-	///
-	/// Returns a collection of tags related to the image.
-	/// If a website does not use tags, it should attempt to parse useful data out of other elements, e.g. the title or URL.
-	/// A [Other error](DownloaderError::Other) means the website in general does not use tags and there are no alternatives.
-	///
-	/// The Downloaders themselves don't have to remove duplicates,
-	/// but the idea is that the main thread will sort and [dedup](Vec::dedup) anyway,
-	/// so that it does not have to be implemented every single time.
-	fn image_tags(&self) -> DownloaderResult<Vec<String>>;
 }
 
 /// Wallpaper Metadata
@@ -114,11 +103,6 @@ pub struct WallpaperMeta {
 	/// The title of the Wallpaper, if it exists.
 	pub title: Option<String>,
 
-	/// Image Tags
-	/// 
-	/// The tags used in the original post. If converted from a [Downloader], these are sorted and deduped.
-	pub tags: Vec<String>,
-
 	/// Wallpaper URL
 	/// 
 	/// The URL (or multiple URLs) of a Wallpaper.
@@ -129,19 +113,6 @@ impl TryFrom<Box<dyn Downloader>> for WallpaperMeta {
 	type Error = DownloaderError;
 
 	fn try_from(value: Box<dyn Downloader>) -> Result<Self, Self::Error> {
-		// Extract tags and sort them
-		let tags = match value.image_tags() {
-			Ok(mut x) => {
-				x.sort_unstable();
-				x.dedup();
-				x
-			},
-			Err(err) => match err {
-				DownloaderError::Other => vec![],
-				_ => return Err(err)
-			}
-		};
-
 		// Extract title
 		let title = match value.image_title() {
 			Ok(x) => Some(x),
@@ -153,7 +124,6 @@ impl TryFrom<Box<dyn Downloader>> for WallpaperMeta {
 
 		// Bundle information
 		let meta = Self {
-			tags,
 			title,
 			id: value.image_id().to_owned(),
 			images: value.image_url()?
