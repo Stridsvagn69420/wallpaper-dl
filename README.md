@@ -14,10 +14,12 @@ Wallpaper downloader for various websites
 - Alphacoders ([Wallpaper Abyss](https://wall.alphacoders.com/), [Art Abyss](https://art.alphacoders.com/), [Image Abyss](https://pics.alphacoders.com/))
 - [ArtStation](https://www.artstation.com/)
 
+Note: Alphacoder's Abyss websites tend to block the downloader, so it does not work all the time.
+
 ## Usage
 Downloading wallpapers:
 ```bash
-wallpaper-dl <URL[]>
+wallpaper-dl <URLs>
 ```
 
 ## Contributing

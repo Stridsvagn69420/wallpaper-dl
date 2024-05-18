@@ -2,14 +2,11 @@
 //!
 //! The submodule containing the wallpaper downloader and its helper functions.
 
-use apputils::{paint, Colors};
 use reqwest::blocking::{Client, Response};
 use reqwest::{Error, IntoUrl};
 use scraper::error::SelectorErrorKind;
 use scraper::{Html, Selector};
 use std::fmt;
-use std::thread;
-use std::time::Duration;
 use url::{ParseError, Url};
 
 mod alphacoders;
@@ -20,11 +17,6 @@ pub use alphacoders::{ArtAbyss, ImageAbyss, WallpaperAbyss};
 pub use artstation::ArtStation;
 pub use wallhaven::Wallhaven;
 
-const WALLHAVEN: &str = "wallhaven.cc";
-const WALLPAPER_ABYSS: &str = "wall.alphacoders.com";
-const ART_ABYSS: &str = "art.alphacoders.com";
-const IMAGE_ABYSS: &str = "pics.alphacoders.com";
-const ARTSTATION: &str = "artstation.com";
 
 macro_rules! ok_box {
 	($dl:expr) => {
@@ -32,27 +24,25 @@ macro_rules! ok_box {
 	};
 }
 
+const WALLHAVEN: &str = "wallhaven.cc";
+const WALLPAPER_ABYSS: &str = "wall.alphacoders.com";
+const ART_ABYSS: &str = "art.alphacoders.com";
+const IMAGE_ABYSS: &str = "pics.alphacoders.com";
+const ARTSTATION: &str = "www.artstation.com";
+
 /// [Downloader] from URL
 ///
 /// Returns the [Downloader] needed for the provided [Url].
-pub fn from_url(c: &Client, url: Url, d: u64) -> DownloaderResult<Box<dyn Downloader>> {
+pub fn from_url(c: &Client, url: Url) -> DownloaderResult<Box<dyn Downloader>> {
 	let host = url.host_str().unwrap_or_default();
 
-	paint!(Colors::GreenBold, "  Fetching ");
-	print!("{url}");
-
-	if host.ends_with(WALLHAVEN) {
-		ok_box!(Wallhaven::new(c, url, d))
-	} else if host.ends_with(WALLPAPER_ABYSS) {
-		ok_box!(WallpaperAbyss::new(c, url, d))
-	} else if host.ends_with(ART_ABYSS) {
-		ok_box!(ArtAbyss::new(c, url, d))
-	} else if host.ends_with(IMAGE_ABYSS) {
-		ok_box!(ImageAbyss::new(c, url, d))
-	} else if host.ends_with(ARTSTATION) {
-		ok_box!(ArtStation::new(c, url, d))
-	} else {
-		Err(DownloaderError::Other)
+	match host {
+		WALLHAVEN => ok_box!(Wallhaven::new(c, url)),
+		WALLPAPER_ABYSS => ok_box!(WallpaperAbyss::new(c, url)),
+		ART_ABYSS => ok_box!(ArtAbyss::new(c, url)),
+		IMAGE_ABYSS => ok_box!(ImageAbyss::new(c, url)),
+		ARTSTATION => ok_box!(ArtStation::new(c, url)),
+		_ => Err(DownloaderError::Other)
 	}
 }
 
@@ -64,7 +54,7 @@ pub trait Downloader {
 	///
 	/// Creates a new Webscraper.
 	/// Requires a preconfigured [Client] as well as the post [Url].
-	fn new(client: &Client, url: Url, delay: u64) -> DownloaderResult<impl Downloader>
+	fn new(client: &Client, url: Url) -> DownloaderResult<impl Downloader>
 	where
 		Self: Sized;
 
@@ -106,7 +96,7 @@ pub struct WallpaperMeta {
 	/// Wallpaper URL
 	/// 
 	/// The URL (or multiple URLs) of a Wallpaper.
-	pub images: Urls
+	pub images: Vec<Url>
 }
 
 impl TryFrom<Box<dyn Downloader>> for WallpaperMeta {
@@ -126,7 +116,7 @@ impl TryFrom<Box<dyn Downloader>> for WallpaperMeta {
 		let meta = Self {
 			title,
 			id: value.image_id().to_owned(),
-			images: value.image_url()?
+			images: Vec::from(value.image_url()?)
 		};
 		Ok(meta)
 	}
@@ -257,9 +247,8 @@ impl From<ParseError> for DownloaderError {
 /// Quick download wrapper
 ///
 /// Shorthand for sending a GET request. If successful, the [Response]'s body can be used.
-pub fn quick_get(c: &Client, url: impl IntoUrl, delay: u64) -> DownloaderResult<Response> {
+pub fn quick_get(c: &Client, url: impl IntoUrl) -> DownloaderResult<Response> {
 	let resp = c.get(url).send()?.error_for_status()?;
-	thread::sleep(Duration::from_millis(delay));
 	Ok(resp)
 }
 

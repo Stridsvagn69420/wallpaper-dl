@@ -35,10 +35,10 @@ pub struct Wallhaven {
 }
 
 impl Downloader for Wallhaven {
-	fn new(client: &Client, mut url: Url, delay: u64) -> DownloaderResult<Self> {
+	fn new(client: &Client, mut url: Url) -> DownloaderResult<Self> {
 		let api_path = format!("/api/v1{}", url.path());
 		url.set_path(&api_path);
-		let api_res = quick_get(client, url, delay)?.json::<WallhavenApi>()?;
+		let api_res = quick_get(client, url)?.json::<WallhavenApi>()?;
 		Ok(api_res.data)
 	}
 

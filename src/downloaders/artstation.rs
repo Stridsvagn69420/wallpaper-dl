@@ -14,11 +14,11 @@ pub struct ArtStation {
 }
 
 impl Downloader for ArtStation {
-	fn new(client: &Client, mut url: Url, delay: u64) -> DownloaderResult<Self> {
+	fn new(client: &Client, mut url: Url) -> DownloaderResult<Self> {
 		let id_path = url.path().replace("/artwork/", "/projects/");
 		let api_path = format!("{}.json", id_path);
 		url.set_path(&api_path);
-		Ok(quick_get(client, url, delay)?.json::<Self>()?)
+		Ok(quick_get(client, url)?.json::<Self>()?)
 	}
 
 	fn image_id(&self) -> &str {
