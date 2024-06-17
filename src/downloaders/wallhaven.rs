@@ -34,8 +34,8 @@ pub struct Wallhaven {
 	id: String
 }
 
+#[allow(refining_impl_trait)]
 impl Downloader for Wallhaven {
-	#[allow(refining_impl_trait)]
 	fn new(client: &Client, mut url: Url) -> DownloaderResult<Self> {
 		let api_path = format!("/api/v1{}", url.path());
 		url.set_path(&api_path);

@@ -12,11 +12,12 @@ use url::{ParseError, Url};
 mod alphacoders;
 mod artstation;
 mod wallhaven;
+mod danbooru;
 
 pub use alphacoders::{ArtAbyss, ImageAbyss, WallpaperAbyss};
 pub use artstation::ArtStation;
 pub use wallhaven::Wallhaven;
-
+pub use danbooru::Danbooru;
 
 macro_rules! ok_box {
 	($dl:expr) => {
@@ -29,6 +30,7 @@ const WALLPAPER_ABYSS: &str = "wall.alphacoders.com";
 const ART_ABYSS: &str = "art.alphacoders.com";
 const IMAGE_ABYSS: &str = "pics.alphacoders.com";
 const ARTSTATION: &str = "www.artstation.com";
+const DANBOORU: &str = "danbooru.donmai.us";
 
 /// [Downloader] from URL
 ///
@@ -42,6 +44,7 @@ pub fn from_url(c: &Client, url: Url) -> DownloaderResult<Box<dyn Downloader>> {
 		ART_ABYSS => ok_box!(ArtAbyss::new(c, url)),
 		IMAGE_ABYSS => ok_box!(ImageAbyss::new(c, url)),
 		ARTSTATION => ok_box!(ArtStation::new(c, url)),
+		DANBOORU => ok_box!(Danbooru::new(c, url)),
 		_ => Err(DownloaderError::Other)
 	}
 }
