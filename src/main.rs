@@ -63,7 +63,7 @@ fn action(urls: Vec<Url>) -> ExitCode {
 			Ok(x) => x,
 			Err(err) => {
 				match err {
-					DownloaderError::Other => paint!(Colors::YellowBold, " Not Supported!"),
+					DownloaderError::Other => paintln!(Colors::YellowBold, " Not Supported!"),
 					_ => paintln!(Colors::RedBold, " Failed: {}{err}", Colors::Red)
 				};
 				continue;
