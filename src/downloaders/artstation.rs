@@ -9,11 +9,11 @@ use url::Url;
 #[derive(Deserialize)]
 pub struct ArtStation {
 	hash_id: String,
-	title: String,
 	assets: Vec<Asset>
 }
 
 impl Downloader for ArtStation {
+	#[allow(refining_impl_trait)]
 	fn new(client: &Client, mut url: Url) -> DownloaderResult<Self> {
 		let id_path = url.path().replace("/artwork/", "/projects/");
 		let api_path = format!("{}.json", id_path);
@@ -37,9 +37,6 @@ impl Downloader for ArtStation {
 			})
 			.collect();
 		Ok(Urls::Multi(urls))
-	}
-	fn image_title(&self) -> DownloaderResult<String> {
-		Ok(self.title.clone())
 	}
 }
 /// ArtStation Post Asset

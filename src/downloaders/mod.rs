@@ -69,14 +69,6 @@ pub trait Downloader {
 	/// The source image URL that points to the actual high quality image.
 	/// The main thread will handle the file downloading.
 	fn image_url(&self) -> DownloaderResult<Urls>;
-
-	/// Image Title
-	///
-	/// The title of the image. Can also be a mix of the title and artist.
-	/// If a website does not use titles for some odd reason, the downloader should return the errror [Other](DownloaderError::Other)
-	/// in order to let the main thread know that it should look for title hints when downloading the data
-	/// or hash it and use that as a title.
-	fn image_title(&self) -> DownloaderResult<String>;
 }
 
 /// Wallpaper Metadata
@@ -88,11 +80,6 @@ pub struct WallpaperMeta {
 	/// A unique identifier for the Wallpaper/Post.
 	pub id: String,
 
-	/// Wallpaper Title
-	/// 
-	/// The title of the Wallpaper, if it exists.
-	pub title: Option<String>,
-
 	/// Wallpaper URL
 	/// 
 	/// The URL (or multiple URLs) of a Wallpaper.
@@ -103,18 +90,8 @@ impl TryFrom<Box<dyn Downloader>> for WallpaperMeta {
 	type Error = DownloaderError;
 
 	fn try_from(value: Box<dyn Downloader>) -> Result<Self, Self::Error> {
-		// Extract title
-		let title = match value.image_title() {
-			Ok(x) => Some(x),
-			Err(err) => match err {
-				DownloaderError::Other => None,
-				_ => return Err(err)
-			}
-		};
-
 		// Bundle information
 		let meta = Self {
-			title,
 			id: value.image_id().to_owned(),
 			images: Vec::from(value.image_url()?)
 		};
@@ -300,13 +277,5 @@ impl ScraperWrapper {
 	pub fn image_url(html: &Html, select: &SelectAttr) -> DownloaderResult<Url> {
 		let link = select.extract(html)?;
 		Ok(Url::parse(link)?)
-	}
-
-	/// Image Title wrapper
-	///
-	/// Extract value from element and convert it to a [String].
-	pub fn image_title(html: &Html, select: &SelectAttr) -> DownloaderResult<String> {
-		let title = select.extract(html)?;
-		Ok(title.to_string())
 	}
 }

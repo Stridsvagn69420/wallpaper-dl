@@ -1,4 +1,4 @@
-use super::{quick_get, Downloader, DownloaderError, DownloaderResult, Urls};
+use super::{quick_get, Downloader, DownloaderResult, Urls};
 use reqwest::blocking::Client;
 use serde::Deserialize;
 use url::Url;
@@ -35,6 +35,7 @@ pub struct Wallhaven {
 }
 
 impl Downloader for Wallhaven {
+	#[allow(refining_impl_trait)]
 	fn new(client: &Client, mut url: Url) -> DownloaderResult<Self> {
 		let api_path = format!("/api/v1{}", url.path());
 		url.set_path(&api_path);
@@ -48,8 +49,5 @@ impl Downloader for Wallhaven {
 	fn image_url(&self) -> DownloaderResult<Urls> {
 		let url = Url::parse(&self.path)?;
 		Ok(url.into())
-	}
-	fn image_title(&self) -> DownloaderResult<String> {
-		Err(DownloaderError::Other)
 	}
 }

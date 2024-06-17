@@ -9,8 +9,7 @@ use url::Url;
 struct Alphacoders {
 	html: Html,
 	id: String,
-	download: SelectAttr,
-	title: SelectAttr
+	download: SelectAttr
 }
 
 impl Alphacoders {
@@ -26,8 +25,7 @@ impl Alphacoders {
 		client: &Client,
 		url: Url,
 		id: String,
-		service_css: &str,
-		title_css: &str	
+		service_css: &str
 	) -> DownloaderResult<Self> {
 		let html = quick_get(client, url)?.text()?;
 		let download_css = format!("a#{}_{}_download_button", service_css, id);
@@ -35,8 +33,7 @@ impl Alphacoders {
 		Ok(Self {
 			html: Html::parse_document(&html),
 			id,
-			download,
-			title: SelectAttr::parse(title_css, "title")?
+			download
 		})
 	}
 
@@ -44,11 +41,6 @@ impl Alphacoders {
 	fn image_url(&self) -> DownloaderResult<Urls> {
 		let url = ScraperWrapper::image_url(&self.html, &self.download)?;
 		Ok(Urls::Single(url))
-	}
-
-	/// Image Title wrapper
-	fn image_title(&self) -> DownloaderResult<String> {
-		ScraperWrapper::image_title(&self.html, &self.title)
 	}
 }
 
@@ -58,12 +50,13 @@ impl Alphacoders {
 pub struct WallpaperAbyss(Alphacoders);
 
 impl Downloader for WallpaperAbyss {
+	#[allow(refining_impl_trait)]
 	fn new(client: &Client, url: Url) -> DownloaderResult<Self> {
 		let id = match url.query() {
 			Some(x) => x.replace("i=", ""),
 			None => return Err(DownloaderError::ParseError("URL Query did not match pattern".to_string()))
 		};
-		let inner = Alphacoders::new(client, url, id, "wallpaper", "img#main-content")?;
+		let inner = Alphacoders::new(client, url, id, "wallpaper")?;
 		Ok(Self(inner))
 	}
 
@@ -72,9 +65,6 @@ impl Downloader for WallpaperAbyss {
 	}
 	fn image_url(&self) -> DownloaderResult<Urls> {
 		self.0.image_url()
-	}
-	fn image_title(&self) -> DownloaderResult<String> {
-		self.0.image_title()
 	}
 }
 
@@ -84,9 +74,10 @@ impl Downloader for WallpaperAbyss {
 pub struct ArtAbyss(Alphacoders);
 
 impl Downloader for ArtAbyss {
+	#[allow(refining_impl_trait)]
 	fn new(client: &Client, url: Url) -> DownloaderResult<Self> {
 		let id = url.path().replace("/arts/view/", "");
-		let inner = Alphacoders::new(client, url, id, "art", "img.img-responsive")?;
+		let inner = Alphacoders::new(client, url, id, "art")?;
 		Ok(Self(inner))
 	}
 
@@ -95,9 +86,6 @@ impl Downloader for ArtAbyss {
 	}
 	fn image_url(&self) -> DownloaderResult<Urls> {
 		self.0.image_url()
-	}
-	fn image_title(&self) -> DownloaderResult<String> {
-		self.0.image_title()
 	}
 }
 
@@ -107,9 +95,10 @@ impl Downloader for ArtAbyss {
 pub struct ImageAbyss(Alphacoders);
 
 impl Downloader for ImageAbyss {
+	#[allow(refining_impl_trait)]
 	fn new(client: &Client, url: Url) -> DownloaderResult<Self> {
 		let id = url.path().replace("/pictures/view/", "");
-		let inner = Alphacoders::new(client, url, id, "picture", "img.img-responsive")?;
+		let inner = Alphacoders::new(client, url, id, "picture")?;
 		Ok(Self(inner))
 	}
 
@@ -118,8 +107,5 @@ impl Downloader for ImageAbyss {
 	}
 	fn image_url(&self) -> DownloaderResult<Urls> {
 		self.0.image_url()
-	}
-	fn image_title(&self) -> DownloaderResult<String> {
-		self.0.image_title()
 	}
 }
