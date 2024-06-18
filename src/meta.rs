@@ -11,7 +11,7 @@ pub const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 const APP_DESC: &str = env!("CARGO_PKG_DESCRIPTION");
 
-// HTTP Constants
+// User-Agent
 pub const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION"));
 
 pub struct Info;

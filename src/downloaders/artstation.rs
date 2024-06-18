@@ -12,8 +12,8 @@ pub struct ArtStation {
 	assets: Vec<Asset>
 }
 
+#[allow(refining_impl_trait)]
 impl Downloader for ArtStation {
-	#[allow(refining_impl_trait)]
 	fn new(client: &Client, mut url: Url) -> DownloaderResult<Self> {
 		let id_path = url.path().replace("/artwork/", "/projects/");
 		let api_path = format!("{}.json", id_path);

@@ -49,8 +49,8 @@ impl Alphacoders {
 /// Downloader designed for [Wallpaper Abyss](https://wall.alphacoders.com/)
 pub struct WallpaperAbyss(Alphacoders);
 
+#[allow(refining_impl_trait)]
 impl Downloader for WallpaperAbyss {
-	#[allow(refining_impl_trait)]
 	fn new(client: &Client, url: Url) -> DownloaderResult<Self> {
 		let id = match url.query() {
 			Some(x) => x.replace("i=", ""),
