@@ -135,9 +135,9 @@ fn download(client: &Client, url: Url, id: &str, host: &str, ctr: (bool, u8)) ->
 
 	// Build filename
 	let fname = if ctr.0 {
-		format!("{id}_{host}.{ext}")
+		format!("{host}_{id}.{ext}")
 	} else {
-		format!("{id}_{}_{host}.{ext}", ctr.1)
+		format!("{host}_{id}_{}.{ext}", ctr.1)
 	};
 
 	// Download file data
