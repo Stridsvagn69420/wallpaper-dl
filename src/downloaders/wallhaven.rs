@@ -3,23 +3,6 @@ use reqwest::blocking::Client;
 use serde::Deserialize;
 use url::Url;
 
-#[derive(Deserialize, Clone)]
-struct Tag {
-	category: String,
-	name: String,
-	alias: String,
-}
-
-impl From<Tag> for Vec<String> {
-	fn from(value: Tag) -> Vec<String> {
-		let mut tags = vec![value.category, value.name];
-		value.alias
-			.split(", ")
-			.for_each(|x| tags.push(x.to_string()));
-		tags
-	}
-}
-
 #[derive(Deserialize)]
 struct WallhavenApi {
 	data: Wallhaven,
@@ -30,7 +13,7 @@ struct WallhavenApi {
 /// Downloader designed for [Wallhaven](https://wallhaven.cc/)
 #[derive(Deserialize)]
 pub struct Wallhaven {
-	path: String,
+	path: Url,
 	id: String
 }
 
@@ -42,12 +25,10 @@ impl Downloader for Wallhaven {
 		let api_res = quick_get(client, url)?.json::<WallhavenApi>()?;
 		Ok(api_res.data)
 	}
-
 	fn image_id(&self) -> &str {
 		&self.id
 	}
 	fn image_url(&self) -> DownloaderResult<Urls> {
-		let url = Url::parse(&self.path)?;
-		Ok(url.into())
+		Ok(self.path.clone().into())
 	}
 }
